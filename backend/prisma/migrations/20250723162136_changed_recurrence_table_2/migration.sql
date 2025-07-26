@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Recurrence" ALTER COLUMN "start_date" SET DEFAULT CURRENT_TIMESTAMP;

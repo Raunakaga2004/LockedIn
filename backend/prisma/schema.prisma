@@ -1,0 +1,284 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  username     String    @unique
+  firstname    String
+  lastname     String?
+  email        String    @unique
+  phone_number String    @unique
+  password     String
+  otp          Int?
+  otp_expires  DateTime?
+  created_At   DateTime  @default(now())
+  updated_At   DateTime  @updatedAt
+
+  tasks                 Task[] // for relation with Task Model
+  recurrence            Recurrence[]
+  pomodoro_session      Pomodoro_Session[]
+  habit                 Habit[]
+  habit_log             Habit_Log[]
+  time_blocking         Time_Blocking[]
+  tag                   Tag[]
+  task_tag              Task_Tag[]
+  workout_plan          Workout_Plan[]
+  workout_plan_exercise Workout_Plan_Exercise[]
+  workout_session_log   Workout_Session_Log[]
+  workout_exercise_log  Workout_Exercise_Log[]
+}
+
+enum TaskType {
+  day
+  week
+  month
+  quick_task
+}
+
+enum TaskStatus {
+  in_progress
+  completed
+  uncompleted
+}
+
+model Task {
+  user       User        @relation(fields: [user_id], references: [id]) // relation with User Model
+  recurrence Recurrence? @relation(name: "RecurredTasks", fields: [recurrence_id], references: [id])
+
+  id                String     @id @default(cuid())
+  user_id           String
+  title             String
+  description       String?
+  type              TaskType   @default(quick_task)
+  status            TaskStatus @default(uncompleted)
+  urgent            Boolean?   @default(false)
+  important         Boolean?   @default(false)
+  recurrence_id     String? // only one recurrence
+  expected_pomodoro Int?
+  actual_pomodoro   Int?
+  delete            Boolean    @default(false)
+  created_At        DateTime   @default(now())
+  updated_At        DateTime   @updatedAt
+
+  recurrence_base  Recurrence[]       @relation(name: "BaseTask")
+  pomodoro_session Pomodoro_Session[]
+  time_blocking    Time_Blocking[]
+  task_tag         Task_Tag[]
+}
+
+enum RecurrenceHabitFrequency {
+  daily
+  weekly
+  monthly
+  yearly
+}
+
+enum WeekDays {
+  sunday
+  monday
+  tuesday
+  wednesday
+  thursday
+  friday
+  saturday
+}
+
+model Recurrence {
+  user      User @relation(fields: [user_id], references: [id])
+  task_base Task @relation(name: "BaseTask", fields: [base_task_id], references: [id])
+
+  id              String                   @id @default(cuid())
+  user_id         String
+  base_task_id    String
+  frequency       RecurrenceHabitFrequency @default(daily)
+  interval        Int                      @default(1)
+  days_of_week    WeekDays[]               @default([]) // only used for weeks
+  start_date      DateTime                 @default(now())
+  end_date        DateTime?
+  occurence_count Int                      @default(0)
+  last_occurence  DateTime?
+  exceptions      DateTime[]               @default([])
+  is_active       Boolean                  @default(true)
+  delete          Boolean                  @default(false)
+
+  task Task[] @relation(name: "RecurredTasks")
+}
+
+model Pomodoro_Session {
+  user User  @relation(fields: [user_id], references: [id])
+  task Task? @relation(fields: [task_id], references: [id])
+
+  id                                       String   @id @default(cuid())
+  user_id                                  String
+  task_id                                  String?
+  start_time                               DateTime
+  end_time                                 DateTime
+  number_focus                             Int
+  number_short_break                       Int
+  number_long_break                        Int
+  focus_time                               Int      @default(25) // in minutes
+  short_break_time                         Int      @default(5) // in minutes
+  long_break_time                          Int      @default(15) // in minutes
+  number_of_focus_session_before_longBreak Int      @default(4)
+  interruption_time                        Int
+  notes                                    String?
+  created_At                               DateTime @default(now())
+  updated_At                               DateTime @updatedAt
+}
+
+model Habit {
+  user User @relation(fields: [user_id], references: [id])
+
+  id           String                   @id @default(cuid())
+  user_id      String
+  title        String
+  description  String?
+  start_date   DateTime
+  end_date     DateTime?
+  frequency    RecurrenceHabitFrequency @default(daily)
+  interval     Int                      @default(1)
+  days_of_week WeekDays[]               @default([])
+  is_active    Boolean                  @default(true)
+  delete       Boolean                  @default(false)
+
+  habit_log     Habit_Log[]
+  time_blocking Time_Blocking[]
+}
+
+model Habit_Log {
+  user  User  @relation(fields: [user_id], references: [id])
+  habit Habit @relation(fields: [habit_id], references: [id])
+
+  id         String   @id @default(cuid())
+  user_id    String
+  habit_id   String
+  date       DateTime
+  notes      String?
+  completed  Boolean? @default(false)
+  created_At DateTime @default(now())
+  updated_At DateTime @updatedAt
+}
+
+model Time_Blocking {
+  user  User   @relation(fields: [user_id], references: [id])
+  habit Habit? @relation(fields: [habit_id], references: [id])
+  task  Task?  @relation(fields: [task_id], references: [id])
+
+  id         String   @id @default(cuid())
+  user_id    String
+  habit_id   String?
+  task_id    String?
+  start_time DateTime
+  end_time   DateTime
+  notes      String?
+  created_At DateTime @default(now())
+  updated_At DateTime @updatedAt
+}
+
+model Tag {
+  user User @relation(fields: [user_id], references: [id])
+
+  id          String   @id @default(cuid())
+  user_id     String
+  tag_name    String
+  description String?
+  color_code  String?
+  created_At  DateTime @default(now())
+  updated_At  DateTime @updatedAt
+  delete      Boolean  @default(false)
+
+  task_tag Task_Tag[]
+}
+
+model Task_Tag {
+  user User @relation(fields: [user_id], references: [id])
+  task Task @relation(fields: [task_id], references: [id])
+  tag  Tag  @relation(fields: [tag_id], references: [id])
+
+  id      String @id @default(cuid())
+  user_id String
+  task_id String
+  tag_id  String
+}
+
+model Workout_Plan {
+  user User @relation(fields: [user_id], references: [id])
+
+  id          String   @id @default(cuid())
+  user_id     String
+  title       String
+  description String?
+  created_At  DateTime @default(now())
+  updated_At  DateTime @updatedAt
+  delete      Boolean  @default(false)
+
+  workout_plan_exercise Workout_Plan_Exercise[]
+  workout_session_log   Workout_Session_Log[]
+}
+
+model Workout_Plan_Exercise {
+  user         User         @relation(fields: [user_id], references: [id])
+  workout_plan Workout_Plan @relation(fields: [workout_plan_id], references: [id])
+
+  id              String   @id @default(cuid())
+  user_id         String
+  workout_plan_id String
+  exercise_name   String
+  description     String?
+  order           Int?
+  notes           String?
+  created_At      DateTime @default(now())
+  updated_At      DateTime @updatedAt
+  delete          Boolean  @default(false)
+
+  workout_exercise_log Workout_Exercise_Log[]
+}
+
+model Workout_Session_Log {
+  user         User         @relation(fields: [user_id], references: [id])
+  workout_plan Workout_Plan @relation(fields: [workout_plan_id], references: [id])
+
+  id              String   @id @default(cuid())
+  user_id         String
+  workout_plan_id String
+  notes           String?
+  start_time      DateTime
+  end_time        DateTime
+  created_At      DateTime @default(now())
+  updated_At      DateTime @updatedAt
+
+  workout_exercise_log Workout_Exercise_Log[]
+}
+
+model Workout_Exercise_Log {
+  user                  User                  @relation(fields: [user_id], references: [id])
+  workout_session_log   Workout_Session_Log   @relation(fields: [workout_session_log_id], references: [id])
+  workout_plan_exercise Workout_Plan_Exercise @relation(fields: [workout_plan_exercise_id], references: [id])
+
+  id                       String   @id @default(cuid())
+  user_id                  String
+  workout_session_log_id   String
+  workout_plan_exercise_id String
+  set                      Int[] // in minutes
+  reps                     Int[]
+  rest                     Int[] // in minutes
+  start_time               DateTime
+  end_time                 DateTime
+  max_weight               Float?
+  notes                    String?
+  created_At               DateTime @default(now())
+  updated_At               DateTime @updatedAt
+}
