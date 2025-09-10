@@ -12,3 +12,13 @@ export const HabitSchema = z.object({
 })
 
 export type HabitType = z.infer<typeof HabitSchema>
+
+export const HabitLogSchema = z.object({
+  user_id : z.string(),
+  habit_id : z.string(),
+  date : z.date().optional(),
+  notes : z.string().optional(),
+  completed : z.boolean().optional,
+})
+
+export type HabitLogType = z.infer<typeof HabitLogSchema>

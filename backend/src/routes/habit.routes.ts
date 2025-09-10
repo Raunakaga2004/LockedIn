@@ -5,63 +5,74 @@ import { HabitSchema, HabitType } from "../schemas/habit.schema";
 import { start } from "repl";
 import prisma from "../config/prisma";
 
-
 const router = Router();
 
 // createHabit
-router.post('/createHabit',validateZod(HabitSchema), verifyToken, async (req, res)=>{
-  try {
-    const userId = (req as any).user.userId;
+router.post(
+  "/createHabit",
+  validateZod(HabitSchema),
+  verifyToken,
+  async (req, res) => {
+    try {
+      const userId = (req as any).user.userId;
 
-    const {title, description, start_date, end_date, frequency, interval, days_of_week} = req.body
+      const {
+        title,
+        description,
+        start_date,
+        end_date,
+        frequency,
+        interval,
+        days_of_week,
+      } = req.body;
 
-    const data : any = {
-      user_id : userId
+      const data: any = {
+        user_id: userId,
+      };
+
+      if (frequency !== "weekly") {
+        data.days_of_week = [];
+      } else data.days_of_week = days_of_week ?? [];
+
+      if (title) data.title = title;
+      else
+        return res.status(400).json({
+          message: "Title is required",
+        });
+
+      if (description) data.description = description;
+
+      if (start_date) data.start_date = start_date;
+      else data.start_date = new Date();
+
+      if (end_date) data.end_date = end_date;
+
+      if (frequency) data.frequency = frequency;
+      else data.frequency = "daily";
+
+      if (interval) data.interval = interval;
+      await prisma.habit.create({
+        data: data,
+      });
+
+      return res.status(200).json({
+        message: "Habit created successfully",
+      });
+    } catch (e) {
+      console.log(e);
+      return res.status(500).json({
+        error: "Internal Server Error!",
+      });
     }
-
-    if(frequency !== "weekly"){
-      data.days_of_week = [];
-    }
-    else data.days_of_week = days_of_week ?? [];
-
-    if(title) data.title = title
-    else return res.status(400).json({
-      message: "Title is required"
-    })
-
-    if(description) data.description = description;
-
-    if(start_date) data.start_date = start_date;
-    else data.start_date = new Date();
-
-    if(end_date) data.end_date = end_date;
-
-    if(frequency) data.frequency = frequency;
-    else data.frequency = "daily"
-
-    if(interval) data.interval = interval;
-    await prisma.habit.create({
-      data: data,
-    });
-
-    return res.status(200).json({
-      message: "Habit created successfully",
-    });
-
-  } catch (e) {
-    console.log(e);
-    return res.status(500).json({
-      error: "Internal Server Error!",
-    });
   }
-})
+);
 
 // getHabit
-router.get('/getHabit', verifyToken, async (req, res)=>{
+router.get("/getHabit", verifyToken, async (req, res) => {
   try {
     const userId = (req as any).user.userId;
 
-    const habit_id  = req.query.id;
+    const habit_id = req.query.id;
 
     if (typeof habit_id !== "string") {
       return res.status(400).json({
@@ -70,118 +81,128 @@ router.get('/getHabit', verifyToken, async (req, res)=>{
     }
 
     const habit = await prisma.habit.findUnique({
-      where : {
-        id : habit_id
-      }
-    })
+      where: {
+        id: habit_id,
+      },
+    });
 
-    if(habit?.user_id !== userId){
+    if (habit?.user_id !== userId) {
       return res.status(404).json({
-        error : "Invalid user habit"
-      })
+        error: "Invalid user habit",
+      });
     }
 
     return res.status(200).json({
-      habit : habit
-    })
-
+      habit: habit,
+    });
   } catch (e) {
     console.log(e);
     return res.status(500).json({
       error: "Internal Server Error!",
     });
   }
-})
+});
 
 // getAllHabit
-router.get('/getAllHabit', verifyToken, async (req, res)=>{
+router.get("/getAllHabit", verifyToken, async (req, res) => {
   try {
     const userId = (req as any).user.userId;
 
     const habits = await prisma.habit.findMany({
-      where : {
-        user_id : userId
-      }
-    })
+      where: {
+        user_id: userId,
+      },
+    });
 
     return res.status(200).json({
-      habits : habits
-    })
-
+      habits: habits,
+    });
   } catch (e) {
     console.log(e);
     return res.status(500).json({
       error: "Internal Server Error!",
     });
   }
-})
+});
 
 // updateHabit
-router.put('/updateHabit', verifyToken, validateZod(HabitSchema), async (req, res)=>{
-  try {
-    const userId = (req as any).user.userId;
+router.put(
+  "/updateHabit",
+  verifyToken,
+  validateZod(HabitSchema),
+  async (req, res) => {
+    try {
+      const userId = (req as any).user.userId;
 
-    const habit_id  = req.query.id;
+      const habit_id = req.query.id;
 
-    if (typeof habit_id !== "string") {
-      return res.status(400).json({
-        error: "Invalid habit id",
+      if (typeof habit_id !== "string") {
+        return res.status(400).json({
+          error: "Invalid habit id",
+        });
+      }
+
+      const {
+        title,
+        description,
+        start_date,
+        end_date,
+        frequency,
+        interval,
+        days_of_week,
+      } = req.body;
+
+      const data: any = {
+        user_id: userId,
+      };
+
+      if (frequency !== "weekly") {
+        data.days_of_week = [];
+      } else data.days_of_week = days_of_week ?? [];
+
+      if (title) data.title = title;
+      else
+        return res.status(400).json({
+          message: "Title is required",
+        });
+
+      if (description) data.description = description;
+
+      if (start_date) data.start_date = start_date;
+      else data.start_date = new Date();
+
+      if (end_date) data.end_date = end_date;
+
+      if (frequency) data.frequency = frequency;
+      else data.frequency = "daily";
+
+      if (interval) data.interval = interval;
+
+      await prisma.habit.update({
+        where: {
+          id: habit_id,
+        },
+        data: data,
+      });
+
+      return res.status(200).json({
+        message: "habit updated successfully!",
+      });
+    } catch (e) {
+      console.log(e);
+      return res.status(500).json({
+        error: "Internal Server Error!",
       });
     }
-
-    const {title, description, start_date, end_date, frequency, interval, days_of_week} = req.body
-
-    const data : any = {
-      user_id : userId
-    }
-
-    if(frequency !== "weekly"){
-      data.days_of_week = [];
-    }
-    else data.days_of_week = days_of_week ?? [];
-
-    if(title) data.title = title
-    else return res.status(400).json({
-      message: "Title is required"
-    })
-
-    if(description) data.description = description;
-
-    if(start_date) data.start_date = start_date;
-    else data.start_date = new Date();
-
-    if(end_date) data.end_date = end_date;
-
-    if(frequency) data.frequency = frequency;
-    else data.frequency = "daily"
-
-    if(interval) data.interval = interval;
-
-    await prisma.habit.update({
-      where : {
-        id : habit_id
-      },
-      data : data
-    })
-
-    return res.status(200).json({
-      message : "habit updated successfully!"
-    })
-
-  } catch (e) {
-    console.log(e);
-    return res.status(500).json({
-      error: "Internal Server Error!",
-    });
   }
-})
+);
 
 // deleteHabit
-router.delete('/deleteHabit', verifyToken, async (req, res)=>{
+router.delete("/deleteHabit", verifyToken, async (req, res) => {
   try {
     const userId = (req as any).user.userId;
 
-    const habit_id  = req.query.id;
+    const habit_id = req.query.id;
 
     if (typeof habit_id !== "string") {
       return res.status(400).json({
@@ -190,104 +211,249 @@ router.delete('/deleteHabit', verifyToken, async (req, res)=>{
     }
 
     await prisma.habit.delete({
-      where : {
-        id : habit_id
-      }
-    })
+      where: {
+        id: habit_id,
+      },
+    });
 
     return res.status(200).json({
-      message : "habit deleted successfully!"
-    })
+      message: "habit deleted successfully!",
+    });
   } catch (e) {
     console.log(e);
     return res.status(500).json({
       error: "Internal Server Error!",
     });
   }
-})
+});
 
 // at 12:01 AM we need to add the current habits to log using node-cron
 
 // updateHabitLog
-router.put('/updateHabitLog', verifyToken, async (req, res)=>{
+router.put("/updateHabitLog", verifyToken, async (req, res) => {
   try {
-  
+    const userId = (req as any).user.userId;
+
+    const id = req.query.id;
+
+    if (typeof id !== "string") {
+      return res.status(400).json({
+        error: "Invalid habit log id",
+      });
+    }
+
+    const { habit_id, date, notes, completed } = req.body;
+
+    const data: any = {
+      user_id: userId,
+    };
+
+    if (habit_id) {
+      data.habit_id = habit_id;
+    }
+
+    if (date) data.date = date;
+
+    if (notes) data.notes = notes;
+
+    if (completed) data.completed = completed;
+
+    await prisma.habit_Log.update({
+      where: {
+        id: id,
+      },
+      data: data,
+    });
+
+    return res.status(200).json({
+      message: "Habit Log created successfully",
+    });
   } catch (e) {
     console.log(e);
     return res.status(500).json({
       error: "Internal Server Error!",
     });
   }
-})
+});
 
 // deleteHabitLog
-router.delete('/deleteHabitLog', verifyToken, async (req, res)=>{
+router.delete("/deleteHabitLog", verifyToken, async (req, res) => {
   try {
-  
+    const userId = (req as any).user.userId;
+
+    const id = req.query.id;
+
+    if (typeof id !== "string") {
+      return res.status(400).json({
+        error: "Invalid habit log id",
+      });
+    }
+
+    await prisma.habit_Log.delete({
+      where: {
+        id: id,
+      },
+    });
+
+    return res.status(200).json({
+      message: "habit log deleted successfully!",
+    });
   } catch (e) {
     console.log(e);
     return res.status(500).json({
       error: "Internal Server Error!",
     });
   }
-})
+});
 
 // addHabitLog
-router.post('/addHabitLog', verifyToken, async (req, res)=>{
+router.post("/addHabitLog", verifyToken, async (req, res) => {
   try {
-  
+    const userId = (req as any).user.userId;
+
+    const { habit_id, date, notes, completed } = req.body;
+
+    const data: any = {
+      user_id: userId,
+    };
+
+    if (!habit_id) {
+      return res.status(400).json({
+        message: "please provide habit id",
+      });
+    } else {
+      data.habit_id = habit_id;
+    }
+
+    if (date) data.date = date;
+
+    if (notes) data.notes = notes;
+
+    if (completed) data.completed = completed;
+
+    await prisma.habit_Log.create({
+      data: data,
+    });
+
+    return res.status(200).json({
+      message: "Habit Log created successfully",
+    });
   } catch (e) {
     console.log(e);
     return res.status(500).json({
       error: "Internal Server Error!",
     });
   }
-})
+});
 
 // getHabitLogs
-router.get('/getHabitLogs', verifyToken, async (req, res)=>{
+router.get("/getHabitLog", verifyToken, async (req, res) => {
   try {
-  
+    const userId = (req as any).user.userId;
+
+    const id = req.query.id;
+
+    if (typeof id !== "string") {
+      return res.status(400).json({
+        error: "Invalid habit log id",
+      });
+    }
+
+    const habitlog = await prisma.habit_Log.findUnique({
+      where: {
+        id: id,
+      },
+    });
+
+    return res.status(200).json({
+      habit_log: habitlog,
+    });
   } catch (e) {
     console.log(e);
     return res.status(500).json({
       error: "Internal Server Error!",
     });
   }
-})
+});
+
+router.get("/getHabitLogs", verifyToken, async (req, res) => {
+  try {
+    const userId = (req as any).user.userId;
+
+    const habit_id = req.query.habit_id;
+
+    if (typeof habit_id !== "string") {
+      return res.status(400).json({
+        error: "Invalid habit id",
+      });
+    }
+
+    const habit_logs = await prisma.habit_Log.findMany({
+      where: {
+        habit_id: habit_id,
+      },
+    });
+
+    return res.status(200).json({
+      habit_logs: habit_logs,
+    });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      error: "Internal Server Error!",
+    });
+  }
+});
 
 // getAllHabitLogs
-router.get('/getAllHabitLogs', verifyToken, async (req, res)=>{
+router.get("/getAllHabitLogs", verifyToken, async (req, res) => {
   try {
-  
+    const userId = (req as any).user.userId;
+
+    const id = req.query.id;
+
+    if (typeof id !== "string") {
+      return res.status(400).json({
+        error: "Invalid habit log id",
+      });
+    }
+
+    const all_habit_logs = await prisma.habit_Log.findMany({
+      where: {
+        habit_id: id,
+        user_id: userId,
+      },
+    });
+
+    return res.status(200).json({
+      all_habit_logs: all_habit_logs,
+    });
   } catch (e) {
     console.log(e);
     return res.status(500).json({
       error: "Internal Server Error!",
     });
   }
-})
+});
 
 // getHabitSummary
-router.get('/getHabitsSummary', verifyToken, async (req, res)=>{
+router.get("/getHabitsSummary", verifyToken, async (req, res) => {
   try {
-  
   } catch (e) {
     console.log(e);
     return res.status(500).json({
       error: "Internal Server Error!",
     });
   }
-})
+});
 
 // getAllHabitSummary
-router.get('/getAllHabitsSummary', verifyToken, async (req, res)=>{
+router.get("/getAllHabitsSummary", verifyToken, async (req, res) => {
   try {
-  
   } catch (e) {
     console.log(e);
     return res.status(500).json({
       error: "Internal Server Error!",
     });
   }
-})
+});
