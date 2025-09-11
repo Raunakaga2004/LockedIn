@@ -238,7 +238,7 @@ model Workout_Plan_Exercise {
   workout_plan_id String
   exercise_name   String
   description     String?
-  order           Int?
+  order           Int? @unique
   notes           String?
   created_At      DateTime @default(now())
   updated_At      DateTime @updatedAt
