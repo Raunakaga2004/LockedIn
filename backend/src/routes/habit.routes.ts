@@ -2,7 +2,6 @@ import { Router } from "express";
 import { verifyToken } from "../middlewares/verifyToken";
 import { validateZod } from "../middlewares/validateZod";
 import { HabitSchema, HabitType } from "../schemas/habit.schema";
-import { start } from "repl";
 import prisma from "../config/prisma";
 
 const router = Router();
