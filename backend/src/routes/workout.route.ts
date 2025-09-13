@@ -3,7 +3,7 @@ import { verifyToken } from "../middlewares/verifyToken";
 
 import prisma from "../config/prisma";
 import { validateZod } from "../middlewares/validateZod";
-import { WorkoutPlanExerciseSchema, WorkoutPlanSchema } from "../schemas/workout.schema";
+import { WorkoutExerciseLogSchema, WorkoutPlanExerciseSchema, WorkoutPlanSchema, WorkoutSessionLogSchema } from "../schemas/workout.schema";
 
 const router = Router();
 
@@ -408,11 +408,33 @@ router.get("/getAllExercises", verifyToken, async (req, res) => {
 });
 
 // add workout session log
-router.get("/addWorkoutSessionLog", verifyToken, async (req, res) => {
+router.get("/addWorkoutSessionLog", verifyToken, validateZod(WorkoutSessionLogSchema), async (req, res) => {
   try {
     const userId = (req as any).user.userId;
-
     
+    const {workout_plan_id, notes, start_time, end_time} = req.body;
+
+    const data : any = {};
+    
+    data.user_id = userId
+
+    if(workout_plan_id) data.workout_plan_id = workout_plan_id
+
+    if(notes) data.notes = notes
+
+    if(start_time) data.start_time = start_time
+
+    if(end_time) data.end_time = end_time
+
+
+    await prisma.workout_Session_Log.create({
+      data : data
+    })
+
+    return res.status(200).json({
+      message : "Workout Session log added Successfully!"
+    })
+
   } catch (e) {
     console.log(e);
     return res.status(500).json({
@@ -422,11 +444,40 @@ router.get("/addWorkoutSessionLog", verifyToken, async (req, res) => {
 });
 
 // update workout session log
-router.get("/updateWorkoutSessionLog", verifyToken, async (req, res) => {
+router.get("/updateWorkoutSessionLog", verifyToken, validateZod(WorkoutSessionLogSchema), async (req, res) => {
   try {
     const userId = (req as any).user.userId;
 
-    
+    const id = req.query.id;
+
+    if(typeof id !== "string"){
+      return res.status(400).json({
+        message : "provide valid id"
+      })
+    }
+
+    const {workout_plan_id, notes, start_time, end_time} = req.body;
+
+    const data : any = {};
+
+    if(workout_plan_id) data.workout_plan_id = workout_plan_id
+
+    if(notes) data.notes = notes
+
+    if(start_time) data.start_time = start_time
+
+    if(end_time) data.end_time = end_time
+
+    await prisma.workout_Session_Log.update({
+      where : {
+        id : id
+      },
+      data : data
+    })
+
+    return res.status(200).json({
+      message : "workout session log updated successfully!"
+    })
   } catch (e) {
     console.log(e);
     return res.status(500).json({
@@ -440,7 +491,23 @@ router.get("/getWorkoutSessionLog", verifyToken, async (req, res) => {
   try {
     const userId = (req as any).user.userId;
 
-    
+    const id = req.query.id;
+
+    if(typeof id !== "string"){
+      return res.status(400).json({
+        message : "provide valid id"
+      })
+    }
+
+    const workoutSessionLog = await prisma.workout_Session_Log.findUnique({
+      where : {
+        id : id
+      }
+    })
+
+    return res.status(200).json({
+      workoutSessionLog
+    })
   } catch (e) {
     console.log(e);
     return res.status(500).json({
@@ -454,7 +521,25 @@ router.get("/getAllWorkoutSessionLogOfWorkout", verifyToken, async (req, res) =>
   try {
     const userId = (req as any).user.userId;
 
-    
+    const id = req.body.id; // workout plan id
+
+    if(typeof id !== "string"){
+      return res.status(400).json({
+        message : "provide valid id"
+      })
+    }
+
+    const workoutSessionLogs = await prisma.workout_Session_Log.findMany({
+      where : {
+        workout_plan_id : id,
+        user_id : userId
+      }
+    })
+
+    return res.status(200).json({
+      workoutSessionLogs
+    })
+
   } catch (e) {
     console.log(e);
     return res.status(500).json({
@@ -468,7 +553,15 @@ router.get("/getAllWorkoutSessionLog", verifyToken, async (req, res) => {
   try {
     const userId = (req as any).user.userId;
 
-    
+    const workoutSessionLogs = await prisma.workout_Session_Log.findMany({
+      where : {
+        user_id : userId
+      }
+    })
+
+    return res.status(200).json({
+      workoutSessionLogs
+    })
   } catch (e) {
     console.log(e);
     return res.status(500).json({
@@ -482,7 +575,23 @@ router.get("/deleteWorkoutSessionLog", verifyToken, async (req, res) => {
   try {
     const userId = (req as any).user.userId;
 
-    
+    const id = req.query.userId
+
+    if(typeof id !== "string"){
+      return res.status(400).json({
+        message : "provide valid id"
+      })
+    }
+
+    await prisma.workout_Session_Log.delete({
+      where : {
+        id : id
+      }
+    })
+
+    return res.status(200).json({
+      message : "session log deleted successfully!"
+    })
   } catch (e) {
     console.log(e);
     return res.status(500).json({
@@ -492,11 +601,41 @@ router.get("/deleteWorkoutSessionLog", verifyToken, async (req, res) => {
 });
 
 // add workout exercise log
-router.get("/addWorkoutExerciseLog", verifyToken, async (req, res) => {
+router.get("/addWorkoutExerciseLog", verifyToken, validateZod(WorkoutExerciseLogSchema), async (req, res) => {
   try {
     const userId = (req as any).user.userId;
 
-    
+    const {workout_session_log_id, workout_plan_exercise_id, set, reps, rest, start_time, end_time, max_weight, notes} = req.body;
+
+    const data : any = {};
+
+    data.user_id = userId;
+
+    if(workout_session_log_id) data.workout_session_log_id = workout_session_log_id
+
+    if(workout_plan_exercise_id) data.workout_plan_exercise_id = workout_plan_exercise_id
+
+    if(set) data.set = set
+
+    if(reps) data.rep = reps
+
+    if(rest) data.rest = rest
+
+    if(start_time) data.start_time = start_time
+
+    if(end_time) data.end_time = end_time
+
+    if(max_weight) data.max_weight = max_weight
+
+    if(notes) data.notes = notes
+
+    await prisma.workout_Exercise_Log.create({
+      data : data
+    })
+
+    return res.status(200).json({
+      message : "workout exercise log created successfully!"
+    })
   } catch (e) {
     console.log(e);
     return res.status(500).json({
@@ -506,11 +645,50 @@ router.get("/addWorkoutExerciseLog", verifyToken, async (req, res) => {
 });
 
 // update workout exercise log
-router.get("/updateWorkoutExerciseLog", verifyToken, async (req, res) => {
+router.get("/updateWorkoutExerciseLog", verifyToken, validateZod(WorkoutExerciseLogSchema), async (req, res) => {
   try {
     const userId = (req as any).user.userId;
 
-    
+    const id = req.query.userId
+
+    if(typeof id !== "string"){
+      return res.status(400).json({
+        message : "provide valid id"
+      })
+    }
+
+    const {workout_session_log_id, workout_plan_exercise_id, set, reps, rest, start_time, end_time, max_weight, notes} = req.body;
+
+    const data : any = {};
+
+    if(workout_session_log_id) data.workout_session_log_id = workout_session_log_id
+
+    if(workout_plan_exercise_id) data.workout_plan_exercise_id = workout_plan_exercise_id
+
+    if(set) data.set = set
+
+    if(reps) data.rep = reps
+
+    if(rest) data.rest = rest
+
+    if(start_time) data.start_time = start_time
+
+    if(end_time) data.end_time = end_time
+
+    if(max_weight) data.max_weight = max_weight
+
+    if(notes) data.notes = notes
+
+    await prisma.workout_Exercise_Log.update({
+      where : {
+        id : id
+      },
+      data : data
+    })
+
+    return res.status(200).json({
+      message : "workout exercise log updated successfully!"
+    })
   } catch (e) {
     console.log(e);
     return res.status(500).json({
@@ -524,7 +702,23 @@ router.get("/deleteWorkoutExerciseLog", verifyToken, async (req, res) => {
   try {
     const userId = (req as any).user.userId;
 
-    
+    const id = req.query.userId
+
+    if(typeof id !== "string"){
+      return res.status(400).json({
+        message : "provide valid id"
+      })
+    }
+
+    await prisma.workout_Exercise_Log.delete({
+      where : {
+        id : id
+      }
+    })
+
+    return res.status(200).json({
+      message : "deleted log successfully!"
+    })
   } catch (e) {
     console.log(e);
     return res.status(500).json({
@@ -538,7 +732,23 @@ router.get("/getWorkoutExerciseLog", verifyToken, async (req, res) => {
   try {
     const userId = (req as any).user.userId;
 
-    
+    const id = req.query.userId
+
+    if(typeof id !== "string"){
+      return res.status(400).json({
+        message : "provide valid id"
+      })
+    }
+
+    const exerciselog = await prisma.workout_Exercise_Log.findUnique({
+      where : {
+        id : id
+      }
+    })
+
+    return res.status(200).json({
+      exerciselog
+    })
   } catch (e) {
     console.log(e);
     return res.status(500).json({
@@ -547,11 +757,64 @@ router.get("/getWorkoutExerciseLog", verifyToken, async (req, res) => {
   }
 });
 
+// get all workout session log containing all exercises
+
+router.get("/getAllWorkoutExerciseLog", verifyToken, async (req, res) => {
+  try {
+    const userId = (req as any).user.userId;
+
+    const id = req.query.userId // workout session log id
+
+    if(typeof id !== "string"){
+      return res.status(400).json({
+        message : "provide valid id"
+      })
+    }
+
+    const exerciseLogs = await prisma.workout_Exercise_Log.findMany({
+      where : {
+        workout_session_log_id : id,
+        user_id : userId
+      }
+    })
+
+
+    return res.status(200).json({
+      exerciseLogs
+    })
+
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      error: "Internal Server Error!",
+    });
+  }
+});
+
+
 // read all workout exercise log 
 router.get("/getAllWorkoutExerciseLog", verifyToken, async (req, res) => {
   try {
     const userId = (req as any).user.userId;
 
+    const id = req.query.userId
+
+    if(typeof id !== "string"){
+      return res.status(400).json({
+        message : "provide valid id"
+      })
+    }
+
+    const exerciseLogs = await prisma.workout_Exercise_Log.findMany({
+      where : {
+        user_id : userId
+      }
+    })
+
+
+    return res.status(200).json({
+      exerciseLogs
+    })
     
   } catch (e) {
     console.log(e);
