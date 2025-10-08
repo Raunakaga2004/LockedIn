@@ -16,6 +16,7 @@ import { styled } from '@mui/material/styles';
 import AppTheme from '../shared-theme/AppTheme';
 import ColorModeSelect from '../shared-theme/ColorModeSelect';
 import { GoogleIcon, FacebookIcon, SitemarkIcon } from './components/CustomIcons';
+import Input from '@mui/material/Input';
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: 'flex',
@@ -66,6 +67,7 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
   const [passwordErrorMessage, setPasswordErrorMessage] = React.useState('');
   const [nameError, setNameError] = React.useState(false);
   const [nameErrorMessage, setNameErrorMessage] = React.useState('');
+  const [phone, setPhone] = React.useState("");
 
   const validateInputs = () => {
     const email = document.getElementById('email') as HTMLInputElement;
@@ -104,6 +106,14 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
     return isValid;
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Allow only digits, limit to 10
+    if (/^\d{0,10}$/.test(value)) {
+      setPhone(value);
+    }
+  };
+
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     if (nameError || emailError || passwordError) {
       event.preventDefault();
@@ -137,17 +147,47 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
             sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
           >
             <FormControl>
-              <FormLabel htmlFor="name">Full name</FormLabel>
+              <FormLabel htmlFor="firstname">First Name</FormLabel>
               <TextField
                 autoComplete="name"
                 name="name"
                 required
                 fullWidth
-                id="name"
-                placeholder="Jon Snow"
+                id="firstname"
+                placeholder="firstname"
                 error={nameError}
                 helperText={nameErrorMessage}
                 color={nameError ? 'error' : 'primary'}
+              />
+            </FormControl>
+            <FormControl>
+              <FormLabel htmlFor="lastname">Last Name</FormLabel>
+              <TextField
+                autoComplete="name"
+                name="name"
+                required
+                fullWidth
+                id="lastname"
+                placeholder="lastname"
+                error={nameError}
+                helperText={nameErrorMessage}
+                color={nameError ? 'error' : 'primary'}
+              />
+            </FormControl>
+            <FormControl>
+              <FormLabel htmlFor="phoneNumber">Phone Number</FormLabel>
+              <TextField
+                variant="outlined"
+                fullWidth
+                value={phone}
+                onChange={handleChange}
+                inputProps={{ maxLength: 10, inputMode: "numeric" }}
+                helperText={
+                  phone.length === 10
+                    ? "Valid number"
+                    : "Please enter a 10-digit phone number"
+                }
+                error={phone.length > 0 && phone.length !== 10}
               />
             </FormControl>
             <FormControl>
@@ -190,9 +230,6 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
               Sign up
             </Button>
           </Box>
-          <Divider>
-            <Typography sx={{ color: 'text.secondary' }}>or</Typography>
-          </Divider>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Typography sx={{ textAlign: 'center' }}>
               Already have an account?{' '}

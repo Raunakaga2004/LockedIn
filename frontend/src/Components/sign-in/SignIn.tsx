@@ -191,7 +191,6 @@ export default function SignIn(props: { disableCustomTheme?: boolean }) {
               Forgot your password?
             </Link>
           </Box>
-          <Divider>or</Divider>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Typography sx={{ textAlign: 'center' }}>
               Don&apos;t have an account?{' '}
