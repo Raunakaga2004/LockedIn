@@ -3,6 +3,8 @@ import CssBaseline from "@mui/material/CssBaseline";
 
 import Dashboard from "./Dashboard";
 import Landing from "./Landing";
+import getUser from "../utils/user";
+import { useEffect, useState } from "react";
 
 const theme = createTheme({
   palette: {
@@ -16,11 +18,21 @@ const theme = createTheme({
 });
 
 export default function Home() {
-  const isLoggedIn = false; // Replace with your actual auth logic
+  const [user, setUser] = useState("")
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  // useEffect(()=>{
-  //   getUser()
-  // },[])
+  useEffect(()=>{
+    async function fetch(){
+      const res = await getUser()
+      console.log(res);
+
+      if(res.user){
+        setUser(res.user.username)
+        setIsLoggedIn(true);
+      }
+    }
+    fetch();
+  },[])
 
   return (
     <ThemeProvider theme={theme}>
