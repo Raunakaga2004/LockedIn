@@ -17,6 +17,7 @@ import ForgotPassword from './components/ForgotPassword';
 import AppTheme from '../shared-theme/AppTheme';
 import ColorModeSelect from '../shared-theme/ColorModeSelect';
 import { GoogleIcon, FacebookIcon, SitemarkIcon } from './components/CustomIcons';
+import { useNavigate } from 'react-router-dom';
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: 'flex',
@@ -60,7 +61,12 @@ const SignInContainer = styled(Stack)(({ theme }) => ({
   },
 }));
 
+import axios from 'axios'
+import { showError, showSuccess } from '../../utils/toast';
+
 export default function SignIn(props: { disableCustomTheme?: boolean }) {
+  const navigate = useNavigate();
+
   const [emailError, setEmailError] = React.useState(false);
   const [emailErrorMessage, setEmailErrorMessage] = React.useState('');
   const [passwordError, setPasswordError] = React.useState(false);
@@ -75,13 +81,30 @@ export default function SignIn(props: { disableCustomTheme?: boolean }) {
     setOpen(false);
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (emailError || passwordError) {
       event.preventDefault();
       return;
     }
     const data = new FormData(event.currentTarget);
+    
+    const content = {
+      email : data.get('email') as string,
+      password : data.get('password') as string,
+    }
+
+    await axios.post(`${import.meta.env.VITE_URL}/user/signin`, content, {
+      withCredentials : true
+    }).then(()=>{
+      navigate('/')
+      showSuccess("Signed In successfully!")
+    }).catch((e)=>{
+      console.log(import.meta.env.VITE_URL)
+      console.log(e);
+      showError("Invalid Details!")
+    })
+    
     console.log({
       email: data.get('email'),
       password: data.get('password'),
