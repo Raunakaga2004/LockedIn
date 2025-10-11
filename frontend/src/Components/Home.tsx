@@ -17,6 +17,11 @@ const theme = createTheme({
 
 export default function Home() {
   const isLoggedIn = false; // Replace with your actual auth logic
+
+  // useEffect(()=>{
+  //   getUser()
+  // },[])
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />

@@ -18,6 +18,10 @@ import ColorModeSelect from '../shared-theme/ColorModeSelect';
 import { GoogleIcon, FacebookIcon, SitemarkIcon } from './components/CustomIcons';
 import Input from '@mui/material/Input';
 
+import axios from 'axios'
+import { useNavigate } from 'react-router-dom';
+import { showError, showSuccess } from '../../utils/toast';
+
 const Card = styled(MuiCard)(({ theme }) => ({
   display: 'flex',
   flexDirection: 'column',
@@ -61,6 +65,8 @@ const SignUpContainer = styled(Stack)(({ theme }) => ({
 }));
 
 export default function SignUp(props: { disableCustomTheme?: boolean }) {
+  const navigate = useNavigate();
+
   const [emailError, setEmailError] = React.useState(false);
   const [emailErrorMessage, setEmailErrorMessage] = React.useState('');
   const [passwordError, setPasswordError] = React.useState(false);
@@ -114,15 +120,37 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
     }
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     if (nameError || emailError || passwordError) {
       event.preventDefault();
       return;
     }
     const data = new FormData(event.currentTarget);
+
+    const content = {
+      username : data.get('username') as string,
+      firstname : data.get('name') as string,
+      lastname : data.get('lastName') as string,
+      email : data.get('email') as string,
+      phone_number : "+91" + data.get('phoneNumber') as string,
+      password : data.get('password') as string,
+    }
+
+    await axios.post(`${import.meta.env.VITE_URL}/user/signup`, content).then(()=>{
+      navigate('/')
+      showSuccess("Signed Up successfully!")
+    }).catch((e)=>{
+      console.log(import.meta.env.VITE_URL)
+      console.log(e);
+      showError("Error Signing Up!")
+    })
+
     console.log({
+      username : data.get('username'),
       name: data.get('name'),
       lastName: data.get('lastName'),
+      phoneNumber : "+91" + data.get('phoneNumber'),
       email: data.get('email'),
       password: data.get('password'),
     });
@@ -147,6 +175,20 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
             sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
           >
             <FormControl>
+              <FormLabel htmlFor="lastname">Username</FormLabel>
+              <TextField
+                autoComplete="username"
+                name="username"
+                required
+                fullWidth
+                id="username"
+                placeholder="username"
+                error={nameError}
+                helperText={nameErrorMessage}
+                color={nameError ? 'error' : 'primary'}
+              />
+            </FormControl>
+            <FormControl>
               <FormLabel htmlFor="firstname">First Name</FormLabel>
               <TextField
                 autoComplete="name"
@@ -164,7 +206,7 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
               <FormLabel htmlFor="lastname">Last Name</FormLabel>
               <TextField
                 autoComplete="name"
-                name="name"
+                name="lastName"
                 required
                 fullWidth
                 id="lastname"
@@ -177,6 +219,7 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
             <FormControl>
               <FormLabel htmlFor="phoneNumber">Phone Number</FormLabel>
               <TextField
+                name = "phoneNumber"
                 variant="outlined"
                 fullWidth
                 value={phone}

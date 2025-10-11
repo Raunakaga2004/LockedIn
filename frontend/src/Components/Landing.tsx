@@ -12,11 +12,12 @@ import {
   Container,
   Grid,
   Paper,
-  Stack,
 } from "@mui/material";
 import { Brightness4, Brightness7 } from "@mui/icons-material";
+import { useNavigate } from "react-router-dom";
 
 export default function LandingPage() {
+  const navigate = useNavigate();
   const [mode, setMode] = React.useState<"light" | "dark">("light");
 
   const theme = React.useMemo(
@@ -24,15 +25,9 @@ export default function LandingPage() {
       createTheme({
         palette: {
           mode,
-          primary: { main: mode === "light" ? "#1976d2" : "#90caf9" },
-          secondary: { main: mode === "light" ? "#9c27b0" : "#ce93d8" },
-          background: {
-            default: mode === "light" ? "#fff" : "#121212",
-            paper: mode === "light" ? "#fff" : "#1e1e1e",
-          },
         },
         typography: {
-          fontFamily: `'Roboto', 'Helvetica', 'Arial', sans-serif`,
+          fontFamily: `"Roboto", "Helvetica", "Arial", sans-serif`,
           h2: { fontWeight: 700 },
           h5: { fontWeight: 500 },
         },
@@ -70,6 +65,13 @@ export default function LandingPage() {
     },
   ];
 
+  function handleSignIn(){
+    navigate('/signin')
+  }
+  function handleSignUp(){
+    navigate('/signup')
+  }
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -77,10 +79,7 @@ export default function LandingPage() {
       {/* Navbar */}
       <AppBar position="static" color="transparent" elevation={0}>
         <Toolbar>
-          <Typography
-            variant="h6"
-            sx={{ flexGrow: 1, fontWeight: 700, color: "primary.main" }}
-          >
+          <Typography variant="h6" sx={{ flexGrow: 1 }}>
             Locked In
           </Typography>
           <IconButton
@@ -90,7 +89,7 @@ export default function LandingPage() {
           >
             {mode === "dark" ? <Brightness7 /> : <Brightness4 />}
           </IconButton>
-          <Button variant="contained" sx={{ ml: 2 }}>
+          <Button variant="contained" sx={{ ml: 2 }} onClick={handleSignIn}>
             Sign In
           </Button>
         </Toolbar>
@@ -107,7 +106,7 @@ export default function LandingPage() {
       >
         <Container>
           <Grid container spacing={4} alignItems="center">
-            <Grid item xs={12} md={6}>
+            <Grid xs={12} md={6}>
               <Typography variant="h2" gutterBottom>
                 Focus Better, Achieve More
               </Typography>
@@ -115,11 +114,7 @@ export default function LandingPage() {
                 A productivity suite designed to help you stay locked in — manage
                 your tasks, track your focus, and level up your habits.
               </Typography>
-              <Button
-                variant="contained"
-                size="large"
-                sx={{ mt: 2, borderRadius: 2 }}
-              >
+              <Button variant="contained" size="large" sx={{ mt: 2 }} onClick={handleSignUp}>
                 Get Started
               </Button>
             </Grid>
@@ -137,7 +132,7 @@ export default function LandingPage() {
       </Box>
 
       {/* Features Section */}
-      <Box id="features" sx={{ bgcolor: mode === "light" ? "#f9fafb" : "#1e1e1e", py: 10 }}>
+      <Box sx={{ py: 10 }}>
         <Container maxWidth="lg">
           <Typography variant="h4" align="center" gutterBottom>
             Features
@@ -145,10 +140,7 @@ export default function LandingPage() {
           <Grid container spacing={4}>
             {features.map((f, i) => (
               <Grid item xs={12} md={4} key={i}>
-                <Paper
-                  elevation={2}
-                  sx={{ p: 4, textAlign: "center", borderRadius: 3, height: "100%" }}
-                >
+                <Paper elevation={3} sx={{ p: 4, textAlign: "center", borderRadius: 3 }}>
                   <Typography variant="h6" gutterBottom>
                     {f.title}
                   </Typography>
@@ -160,7 +152,7 @@ export default function LandingPage() {
         </Container>
       </Box>
 
-      {/* Benefits / How it Can Help Section */}
+      {/* Benefits Section */}
       <Box sx={{ py: 10 }}>
         <Container maxWidth="lg">
           <Typography variant="h4" align="center" gutterBottom>
@@ -169,10 +161,7 @@ export default function LandingPage() {
           <Grid container spacing={4}>
             {benefits.map((b, i) => (
               <Grid item xs={12} md={4} key={i}>
-                <Paper
-                  elevation={2}
-                  sx={{ p: 4, textAlign: "center", borderRadius: 3, height: "100%" }}
-                >
+                <Paper elevation={3} sx={{ p: 4, textAlign: "center", borderRadius: 3 }}>
                   <Typography variant="h6" gutterBottom>
                     {b.title}
                   </Typography>
@@ -185,7 +174,7 @@ export default function LandingPage() {
       </Box>
 
       {/* CTA Section */}
-      <Box sx={{ py: 10, textAlign: "center", bgcolor: mode === "light" ? "#f5f5f5" : "#121212" }}>
+      <Box sx={{ py: 10, textAlign: "center" }}>
         <Container maxWidth="sm">
           <Typography variant="h4" gutterBottom>
             Start Your Productivity Journey
@@ -193,14 +182,14 @@ export default function LandingPage() {
           <Typography variant="body1" color="text.secondary" paragraph>
             Join thousands improving their focus and building habits every day.
           </Typography>
-          <Button variant="contained" size="large">
+          <Button variant="contained" size="large" onClick={handleSignUp}>
             Create Account
           </Button>
         </Container>
       </Box>
 
       {/* Footer */}
-      <Box sx={{ py: 4, textAlign: "center", bgcolor: mode === "light" ? "#f1f1f1" : "#1e1e1e" }}>
+      <Box sx={{ py: 4, textAlign: "center" }}>
         <Typography variant="body2" color="text.secondary">
           © {new Date().getFullYear()} Locked In. All rights reserved.
         </Typography>

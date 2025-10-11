@@ -54,6 +54,22 @@ router.post('/signup', validateZod(SignUpSchema), async (req, res) => {
   try{
     const {username, firstname, lastname, email, phone_number, password} = req.body;
 
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { username: username },
+          { email: email },
+          { phone_number: phone_number },
+        ],
+      },
+    });
+
+    if(user){
+      return res.status(400).json({
+        error : "User Details Invalid!"
+      })
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = await prisma.user.create({
