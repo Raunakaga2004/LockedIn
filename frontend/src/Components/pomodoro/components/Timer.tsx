@@ -15,8 +15,6 @@ interface TimerProps {
   longmin: number;
   longsec: number;
   focusSession: number;
-  setbgcolor: React.Dispatch<React.SetStateAction<string>>;
-  bgcolor: string;
 }
 
 export function Timer(props : TimerProps){
@@ -123,12 +121,12 @@ export function Timer(props : TimerProps){
         setSec(curSec);
     },[timertype])
 
-    useEffect(()=>{
-        if(timertype == "Pomodoro") props.setbgcolor("#CE4257");
-        else if(timertype == "Long Break") props.setbgcolor("#1E6091");
-        else props.setbgcolor("#0A9396");
+    // useEffect(()=>{
+    //     if(timertype == "Pomodoro") props.setbgcolor("#CE4257");
+    //     else if(timertype == "Long Break") props.setbgcolor("#1E6091");
+    //     else props.setbgcolor("#0A9396");
         
-    },[timertype])
+    // },[timertype])
     
     return <div className="text-white flex flex-col bg-neutral-900/20 rounded-xl justify-between select-none p-6 lg:w-[35vw] lg:h-[42vh] md:w-[55vw] md:h-[35vw] h-[35vh] w-[95vw]">
         <div className="flex flex-row md:text-[18px] gap-6 justify-center">
@@ -142,7 +140,7 @@ export function Timer(props : TimerProps){
         </div>
         
         <div className="flex justify-center items-center pb-2">
-            <button onClick={()=>{setTimer(!isTimerOn); click.play()}} style={{color : props.bgcolor}} className={`${isTimerOn ? "mt-4" : "border-b-5 mt-3 border-slate-300" } px-10 bg-white font-semibold text-2xl py-1 rounded-md` }>{isTimerOn ? "PAUSE" : "START"}</button>
+            <button onClick={()=>{setTimer(!isTimerOn); click.play()}} className={`${isTimerOn ? "mt-4 text-black" : "border-b-5 mt-3 text-black" } px-10 bg-white font-semibold text-2xl py-1 rounded-md` }>{isTimerOn ? "PAUSE" : "START"}</button>
             
             {isTimerOn ? <button onClick={()=>changeTimer()} className="absolute translate-x-[120px] translate-y-[5px]">
                 <div className="">

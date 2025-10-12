@@ -22,6 +22,10 @@ export default function Pomodoro(){
   return <>
     <NavBar isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} username={user}/>
     
+    <div>
+      Pomodoro
+    </div>
+
     <div className="flex flex-row w-screen">
       {/* main timer */}
       <div className="flex-1">

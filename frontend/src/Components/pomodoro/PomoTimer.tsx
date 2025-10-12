@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Timer } from "./components/Timer";
 
 export default function PomoTimer() {
-  const [bgcolor, setbgcolor] = useState("");
+  // const [bgcolor, setbgcolor] = useState("");
 
   const [setting, setSetting] = useState(false);
 
@@ -27,7 +27,7 @@ export default function PomoTimer() {
   }
 
   return (
-    <div style={{backgroundColor:bgcolor}} className={`flex justify-center items-center`}>
+    <div className={`flex justify-center items-center`}>
 
       {/* Settings */}
       {setting && <>
@@ -97,7 +97,7 @@ export default function PomoTimer() {
         </svg>
       </div>
       
-      <Timer pomomin={pomoMin} pomosec={pomoSec} shortmin={shortMin} shortsec={shortSec} longmin={longMin} longsec={longSec} focusSession={focusSession} setbgcolor={setbgcolor} bgcolor={bgcolor}/>
+      <Timer pomomin={pomoMin} pomosec={pomoSec} shortmin={shortMin} shortsec={shortSec} longmin={longMin} longsec={longSec} focusSession={focusSession}/>
     </div>
   )
 }
