@@ -1,6 +1,7 @@
-import NavBar from "./NavBar";
+import NavBar from "../NavBar";
 import { useState, useEffect } from "react";
-import getUser from "../utils/user";
+import getUser from "../../utils/user";
+import PomoTimer from "./PomoTimer";
 
 export default function Pomodoro(){
   const [user, setUser] = useState("")
@@ -21,8 +22,21 @@ export default function Pomodoro(){
   return <>
     <NavBar isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} username={user}/>
     
+    <div className="flex flex-row w-screen">
+      {/* main timer */}
+      <div className="flex-1">
+        <PomoTimer/>
+      </div>
 
 
+      {/* tasks */}
+      <div className="flex-1">
+        asdasd
+      </div>
+
+    </div>
+
+    {/* reports */}
 
   </>
 }
