@@ -5,6 +5,8 @@ import Dashboard from "./Dashboard";
 import Landing from "./Landing";
 import getUser from "../utils/user";
 import { useEffect, useState } from "react";
+import NavBar from "./NavBar";
+import AppTheme from "./shared-theme/AppTheme";
 
 const theme = createTheme({
   palette: {
@@ -17,7 +19,7 @@ const theme = createTheme({
   },
 });
 
-export default function Home() {
+export default function Home(props: { disableCustomTheme?: boolean }) {
   const [user, setUser] = useState("")
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
@@ -35,9 +37,10 @@ export default function Home() {
   },[])
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
+    <AppTheme {...props}>
+      <CssBaseline enableColorScheme />
+      <NavBar isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} username={user}/>
       {isLoggedIn ? <Dashboard /> : <Landing />}
-    </ThemeProvider>
+    </AppTheme>
   );
 }

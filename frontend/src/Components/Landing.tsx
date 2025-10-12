@@ -15,25 +15,11 @@ import {
 } from "@mui/material";
 import { Brightness4, Brightness7 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
+import ColorModeSelect from "./shared-theme/ColorModeSelect";
+import AppTheme from "./shared-theme/AppTheme";
 
-export default function LandingPage() {
+export default function LandingPage(props: { disableCustomTheme?: boolean }) {
   const navigate = useNavigate();
-  const [mode, setMode] = React.useState<"light" | "dark">("light");
-
-  const theme = React.useMemo(
-    () =>
-      createTheme({
-        palette: {
-          mode,
-        },
-        typography: {
-          fontFamily: `"Roboto", "Helvetica", "Arial", sans-serif`,
-          h2: { fontWeight: 700 },
-          h5: { fontWeight: 500 },
-        },
-      }),
-    [mode]
-  );
 
   const features = [
     {
@@ -73,27 +59,20 @@ export default function LandingPage() {
   }
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
+    <>
 
-      {/* Navbar */}
+      {/* Navbar
       <AppBar position="static" color="transparent" elevation={0}>
         <Toolbar>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             Locked In
           </Typography>
-          <IconButton
-            sx={{ ml: 1 }}
-            onClick={() => setMode(mode === "light" ? "dark" : "light")}
-            color="inherit"
-          >
-            {mode === "dark" ? <Brightness7 /> : <Brightness4 />}
-          </IconButton>
+          <ColorModeSelect />
           <Button variant="contained" sx={{ ml: 2 }} onClick={handleSignIn}>
             Sign In
           </Button>
         </Toolbar>
-      </AppBar>
+      </AppBar> */}
 
       {/* Hero Section */}
       <Box
@@ -106,7 +85,7 @@ export default function LandingPage() {
       >
         <Container>
           <Grid container spacing={4} alignItems="center">
-            <Grid xs={12} md={6}>
+            <Grid>
               <Typography variant="h2" gutterBottom>
                 Focus Better, Achieve More
               </Typography>
@@ -119,7 +98,7 @@ export default function LandingPage() {
               </Button>
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid>
               <Box
                 component="img"
                 src="https://mui.com/static/images/material-ui/hero-light.png"
@@ -139,7 +118,7 @@ export default function LandingPage() {
           </Typography>
           <Grid container spacing={4}>
             {features.map((f, i) => (
-              <Grid item xs={12} md={4} key={i}>
+              <Grid key={i}>
                 <Paper elevation={3} sx={{ p: 4, textAlign: "center", borderRadius: 3 }}>
                   <Typography variant="h6" gutterBottom>
                     {f.title}
@@ -160,7 +139,7 @@ export default function LandingPage() {
           </Typography>
           <Grid container spacing={4}>
             {benefits.map((b, i) => (
-              <Grid item xs={12} md={4} key={i}>
+              <Grid key={i}>
                 <Paper elevation={3} sx={{ p: 4, textAlign: "center", borderRadius: 3 }}>
                   <Typography variant="h6" gutterBottom>
                     {b.title}
@@ -194,6 +173,7 @@ export default function LandingPage() {
           © {new Date().getFullYear()} Locked In. All rights reserved.
         </Typography>
       </Box>
-    </ThemeProvider>
+    
+    </>
   );
 }
