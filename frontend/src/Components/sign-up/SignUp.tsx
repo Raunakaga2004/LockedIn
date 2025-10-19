@@ -153,135 +153,137 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
     <AppTheme {...props}>
       <CssBaseline enableColorScheme />
       <ColorModeSelect sx={{ position: 'fixed', top: '1rem', right: '1rem' }} />
-      <SignUpContainer direction="column" justifyContent="space-between">
-        <Card variant="outlined">
-          <Typography
-            component="h1"
-            variant="h4"
-            sx={{ width: '100%', fontSize: 'clamp(2rem, 10vw, 2.15rem)' }}
-          >
-            Sign up
-          </Typography>
-          <Box
-            component="form"
-            onSubmit={handleSubmit}
-            sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
-          >
-            
-
-            <FormControl>
-              <FormLabel htmlFor="username">Username</FormLabel>
-              <TextField
-                autoComplete="username"
-                name="username"
-                required
-                fullWidth
-                id="username"
-                placeholder="username"
-                error={nameError}
-                helperText={nameErrorMessage}
-                color={nameError ? 'error' : 'primary'}
-              />
-            </FormControl>
-            <FormControl>
-              <FormLabel htmlFor="firstname">First Name</FormLabel>
-              <TextField
-                autoComplete="name"
-                name="name"
-                required
-                // fullWidth
-                id="firstname"
-                placeholder="firstname"
-                error={nameError}
-                helperText={nameErrorMessage}
-                color={nameError ? 'error' : 'primary'}
-              />
-            </FormControl>
-            <FormControl>
-              <FormLabel htmlFor="lastname">Last Name</FormLabel>
-              <TextField
-                autoComplete="name"
-                name="lastName"
-                required
-                // fullWidth
-                id="lastname"
-                placeholder="lastname"
-                error={nameError}
-                helperText={nameErrorMessage}
-                color={nameError ? 'error' : 'primary'}
-              />
-            </FormControl>
-            <FormControl>
-              <FormLabel htmlFor="phoneNumber">Phone Number</FormLabel>
-              <TextField
-                name = "phoneNumber"
-                variant="outlined"
-                fullWidth
-                value={phone}
-                onChange={handleChange}
-                inputProps={{ maxLength: 10, inputMode: "numeric" }}
-                helperText={
-                  phone.length === 10
-                    ? "Valid number"
-                    : "Please enter a 10-digit phone number"
-                }
-                error={phone.length > 0 && phone.length !== 10}
-              />
-            </FormControl>
-            <FormControl>
-              <FormLabel htmlFor="email">Email</FormLabel>
-              <TextField
-                required
-                fullWidth
-                id="email"
-                placeholder="your@email.com"
-                name="email"
-                autoComplete="email"
-                variant="outlined"
-                error={emailError}
-                helperText={emailErrorMessage}
-                color={passwordError ? 'error' : 'primary'}
-              />
-            </FormControl>
-            <FormControl>
-              <FormLabel htmlFor="password">Password</FormLabel>
-              <TextField
-                required
-                fullWidth
-                name="password"
-                placeholder="••••••"
-                type="password"
-                id="password"
-                autoComplete="new-password"
-                variant="outlined"
-                error={passwordError}
-                helperText={passwordErrorMessage}
-                color={passwordError ? 'error' : 'primary'}
-              />
-            </FormControl>
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              onClick={validateInputs}
+      <div className='min-h-screen flex flex-col justify-center'>
+        <SignUpContainer direction="column" justifyContent="space-between">
+          <Card variant="outlined">
+            <Typography
+              component="h1"
+              variant="h4"
+              sx={{ width: '100%', fontSize: 'clamp(2rem, 10vw, 2.15rem)' }}
             >
               Sign up
-            </Button>
-          </Box>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Typography sx={{ textAlign: 'center' }}>
-              Already have an account?{' '}
-              <Link
-                href="/signin"
-                variant="body2"
-                sx={{ alignSelf: 'center' }}
-              >
-                Sign in
-              </Link>
             </Typography>
-          </Box>
-        </Card>
-      </SignUpContainer>
+            <Box
+              component="form"
+              onSubmit={handleSubmit}
+              sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+            >
+              
+
+              <FormControl>
+                <FormLabel htmlFor="username">Username</FormLabel>
+                <TextField
+                  autoComplete="username"
+                  name="username"
+                  required
+                  fullWidth
+                  id="username"
+                  placeholder="username"
+                  error={nameError}
+                  helperText={nameErrorMessage}
+                  color={nameError ? 'error' : 'primary'}
+                />
+              </FormControl>
+              <FormControl>
+                <FormLabel htmlFor="firstname">First Name</FormLabel>
+                <TextField
+                  autoComplete="name"
+                  name="name"
+                  required
+                  // fullWidth
+                  id="firstname"
+                  placeholder="firstname"
+                  error={nameError}
+                  helperText={nameErrorMessage}
+                  color={nameError ? 'error' : 'primary'}
+                />
+              </FormControl>
+              <FormControl>
+                <FormLabel htmlFor="lastname">Last Name</FormLabel>
+                <TextField
+                  autoComplete="name"
+                  name="lastName"
+                  required
+                  // fullWidth
+                  id="lastname"
+                  placeholder="lastname"
+                  error={nameError}
+                  helperText={nameErrorMessage}
+                  color={nameError ? 'error' : 'primary'}
+                />
+              </FormControl>
+              <FormControl>
+                <FormLabel htmlFor="phoneNumber">Phone Number</FormLabel>
+                <TextField
+                  name = "phoneNumber"
+                  variant="outlined"
+                  fullWidth
+                  value={phone}
+                  onChange={handleChange}
+                  inputProps={{ maxLength: 10, inputMode: "numeric" }}
+                  helperText={
+                    phone.length === 10
+                      ? "Valid number"
+                      : "Please enter a 10-digit phone number"
+                  }
+                  error={phone.length > 0 && phone.length !== 10}
+                />
+              </FormControl>
+              <FormControl>
+                <FormLabel htmlFor="email">Email</FormLabel>
+                <TextField
+                  required
+                  fullWidth
+                  id="email"
+                  placeholder="your@email.com"
+                  name="email"
+                  autoComplete="email"
+                  variant="outlined"
+                  error={emailError}
+                  helperText={emailErrorMessage}
+                  color={passwordError ? 'error' : 'primary'}
+                />
+              </FormControl>
+              <FormControl>
+                <FormLabel htmlFor="password">Password</FormLabel>
+                <TextField
+                  required
+                  fullWidth
+                  name="password"
+                  placeholder="••••••"
+                  type="password"
+                  id="password"
+                  autoComplete="new-password"
+                  variant="outlined"
+                  error={passwordError}
+                  helperText={passwordErrorMessage}
+                  color={passwordError ? 'error' : 'primary'}
+                />
+              </FormControl>
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                onClick={validateInputs}
+              >
+                Sign up
+              </Button>
+            </Box>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Typography sx={{ textAlign: 'center' }}>
+                Already have an account?{' '}
+                <Link
+                  href="/signin"
+                  variant="body2"
+                  sx={{ alignSelf: 'center' }}
+                >
+                  Sign in
+                </Link>
+              </Typography>
+            </Box>
+          </Card>
+        </SignUpContainer>
+      </div>
     </AppTheme>
   );
 }
