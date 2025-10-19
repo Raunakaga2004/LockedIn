@@ -135,7 +135,8 @@ router.post('/signin',validateZod(SignInSchema), async (req, res) => {
     return res.status(200).cookie("token", token, {
       httpOnly: true,
       secure : true,
-      sameSite : true,
+      sameSite : "none",
+      path : '/'
     }).json({
       message : "Signin Successfull!"
     })
@@ -150,7 +151,12 @@ router.post('/signin',validateZod(SignInSchema), async (req, res) => {
 
 router.post('/signout', (req, res) => {
   try{
-    return res.status(200).clearCookie("token").json({
+    return res.status(200).clearCookie("token", {
+      httpOnly: true,
+      secure : true,
+      sameSite : "none",
+      path : '/'
+    }).json({
       message : "Signout Successfull!"
     })
   }

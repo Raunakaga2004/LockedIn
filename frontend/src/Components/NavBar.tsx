@@ -3,9 +3,10 @@ import ColorModeSelect from "./shared-theme/ColorModeSelect";
 import { useNavigate } from "react-router-dom";
 
 import axios from "axios";
-import { showSuccess } from "../utils/toast";
+import { showError, showSuccess } from "../utils/toast";
 import { useState } from "react";
 import ProfileMenu from "./ProfileMenu";
+import { TroubleshootOutlined } from "@mui/icons-material";
 
 interface NavBarProps {
   isLoggedIn: boolean;
@@ -27,12 +28,19 @@ export default function NavBar({isLoggedIn, setIsLoggedIn, username} : NavBarPro
   }
 
   async function handleSignOut(){
-    await axios.post(`${import.meta.env.VITE_URL}/user/signout`, {
-      withCredentials : true
-    })
+    // document.cookie.split(";").forEach(cookie => {
+    //   const name = cookie.split("=")[0].trim();
+    //   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+    // });
 
-    setIsLoggedIn(false);
-    showSuccess("Signed Out Successfully!");
+    axios.post(`${import.meta.env.VITE_URL}/user/signout`,{},{
+      withCredentials : true
+    }).then(()=>{
+      setIsLoggedIn(false);
+      showSuccess("Signed Out Successfully!");
+    }).catch((e)=>{
+      showError(e)
+    })
   }
 
   return <AppBar position="static" color="transparent" elevation={0}>

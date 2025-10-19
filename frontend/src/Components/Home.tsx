@@ -7,6 +7,7 @@ import getUser from "../utils/user";
 import { useEffect, useState } from "react";
 import NavBar from "./NavBar";
 import AppTheme from "./shared-theme/AppTheme";
+import axios from "axios";
 
 const theme = createTheme({
   palette: {
@@ -25,16 +26,18 @@ export default function Home(props: { disableCustomTheme?: boolean }) {
 
   useEffect(()=>{
     async function fetch(){
-      const res = await getUser()
-      console.log(res);
+      const res = await axios.get(`${import.meta.env.VITE_URL}/user`, {
+        withCredentials: true,
+      })
+      // console.log("hi");
 
-      if(res.user){
-        setUser(res.user.username)
+      if(res.data.user){
+        setUser(res.data.user.username)
         setIsLoggedIn(true);
       }
     }
     fetch();
-  },[])
+  },[isLoggedIn])
 
   return (
     <AppTheme {...props}>
