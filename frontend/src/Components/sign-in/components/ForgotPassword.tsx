@@ -7,7 +7,7 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import axios from 'axios';
-import { showSuccess } from '../../../utils/toast';
+import { showError, showSuccess } from '../../../utils/toast';
 import { waitForAllSettled } from 'recoil';
 
 interface ForgotPasswordProps {
@@ -17,8 +17,11 @@ interface ForgotPasswordProps {
 
 export default function ForgotPassword({ open, handleClose }: ForgotPasswordProps) {
   const emailRef = React.useRef<HTMLInputElement>(null)
+  const otpRef = React.useRef<HTMLInputElement>(null)
 
   const [processing, setpro] = React.useState<boolean>(false)
+
+  const [openOTP, setOpen]= React.useState<boolean>(false);
 
   console.log(emailRef)
 
@@ -31,61 +34,119 @@ export default function ForgotPassword({ open, handleClose }: ForgotPasswordProp
     .then(()=>{
       showSuccess("OTP sent successfully!")
       setpro(false)
-      handleClose();
+      setOpen(true);
+      // handleClose();
+
+
     })
     .catch((e) => {
+      setOpen(false);
+      setpro(false);
+      showError("Invalid Email Address!")
       console.error(e)
     })
     
   }
 
-  return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      slotProps={{
-        paper: {
-          component: 'form',
-          onSubmit: (event: React.FormEvent<HTMLFormElement>) => {
-            event.preventDefault();
-            handleForgotPassword();
+  const EmailWindow = ()=>{
+    return <Dialog
+        open={open}
+        onClose={handleClose}
+        slotProps={{
+          paper: {
+            component: 'form',
+            onSubmit: (event: React.FormEvent<HTMLFormElement>) => {
+              event.preventDefault();
+              handleForgotPassword();
+            },
+            sx: { backgroundImage: 'none' },
           },
-          sx: { backgroundImage: 'none' },
-        },
-      }}
-    >
-      <DialogTitle>Reset password</DialogTitle>
-      <DialogContent
-        sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}
+        }}
       >
-        <DialogContentText>
-          {processing ? <>
-            Sending OTP... Please don&apos;t close or refresh.
-          </> : <>
-            Enter your account&apos;s email address, and we&apos;ll send you a otp to
-            reset your password.
-          </>}
-        </DialogContentText>
-        <OutlinedInput
-          inputRef={emailRef}
-          autoFocus
-          required
-          margin="dense"
-          id="email"
-          name="email"
-          label="Email address"
-          placeholder="Email address"
-          type="email"
-          fullWidth
-        />
-      </DialogContent>
+        <DialogTitle>Reset password</DialogTitle>
+        <DialogContent
+          sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}
+        >
+          <DialogContentText>
+            {processing ? <>
+              Sending OTP... Please don&apos;t close or refresh.
+            </> : <>
+              Enter your account&apos;s email address, and we&apos;ll send you a otp to
+              reset your password.
+            </>}
+          </DialogContentText>
+          {!processing && <OutlinedInput
+            inputRef={emailRef}
+            autoFocus
+            required
+            margin="dense"
+            id="email"
+            name="email"
+            label="Email address"
+            placeholder="Email address"
+            type="email"
+            fullWidth
+          />}
+        </DialogContent>
 
-      <DialogActions sx={{ pb: 3, px: 3 }}>
-        <Button onClick={handleClose} disabled={processing}>Cancel</Button>
-        <Button variant="contained" type="submit" disabled={processing}>
-          Continue
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
+        <DialogActions sx={{ pb: 3, px: 3 }}>
+          <Button onClick={handleClose} disabled={processing}>Cancel</Button>
+          <Button variant="contained" type="submit" disabled={processing}>
+            Continue
+          </Button>
+        </DialogActions>
+      </Dialog> 
+  }
+
+  const OTPWindow = ()=>{
+    return <Dialog
+        open={open}
+        onClose={handleClose}
+        slotProps={{
+          paper: {
+            component: 'form',
+            onSubmit: (event: React.FormEvent<HTMLFormElement>) => {
+              event.preventDefault();
+              handleForgotPassword();
+            },
+            sx: { backgroundImage: 'none' },
+          },
+        }}
+      >
+        <DialogTitle>Reset password</DialogTitle>
+        <DialogContent
+          sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}
+        >
+          <DialogContentText>
+            Enter OTP
+          </DialogContentText>
+          <OutlinedInput
+            inputRef={otpRef}
+            autoFocus
+            required
+            margin="dense"
+            id="otp"
+            name="otp"
+            label="OTP"
+            placeholder="OTP"
+            type="number"
+            fullWidth
+          />
+        </DialogContent>
+
+        <DialogActions sx={{ pb: 3, px: 3 }}>
+          <Button onClick={()=>{
+            setOpen(false);
+            handleClose
+            }} disabled={processing}>Change email</Button>
+          <Button variant="contained" type="submit" disabled={processing}>
+            Continue
+          </Button>
+        </DialogActions>
+      </Dialog>
+  }
+
+  return <>
+    {openOTP ? <OTPWindow/> : <EmailWindow/>}
+  </>
 }
