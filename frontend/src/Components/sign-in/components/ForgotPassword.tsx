@@ -23,8 +23,6 @@ export default function ForgotPassword({ open, handleClose }: ForgotPasswordProp
 
   const [openOTP, setOpen]= React.useState<boolean>(false);
 
-  console.log(emailRef)
-
   const handleForgotPassword = async ()=>{
     setpro(true);
     
@@ -43,6 +41,21 @@ export default function ForgotPassword({ open, handleClose }: ForgotPasswordProp
       setOpen(false);
       setpro(false);
       showError("Invalid Email Address!")
+      console.error(e)
+    })
+    
+  }
+
+  const handleOTP = async ()=>{
+    axios.post(`${import.meta.env.VITE_URL}/user/otpVerification`, {
+      email : emailRef.current?.value,
+      otp : otpRef.current?.value
+    })
+    .then(()=>{
+      showSuccess("OTP verified successfully!")
+
+    })
+    .catch((e) => {
       console.error(e)
     })
     
@@ -107,7 +120,7 @@ export default function ForgotPassword({ open, handleClose }: ForgotPasswordProp
             component: 'form',
             onSubmit: (event: React.FormEvent<HTMLFormElement>) => {
               event.preventDefault();
-              handleForgotPassword();
+              handleOTP();
             },
             sx: { backgroundImage: 'none' },
           },
@@ -138,8 +151,56 @@ export default function ForgotPassword({ open, handleClose }: ForgotPasswordProp
           <Button onClick={()=>{
             setOpen(false);
             handleClose
-            }} disabled={processing}>Change email</Button>
-          <Button variant="contained" type="submit" disabled={processing}>
+            }}>Change email</Button>
+          <Button variant="contained" type="submit">
+            Continue
+          </Button>
+        </DialogActions>
+      </Dialog>
+  }
+
+  const RESETPASSWindow = ()=>{
+    return <Dialog
+        open={open}
+        onClose={handleClose}
+        slotProps={{
+          paper: {
+            component: 'form',
+            onSubmit: (event: React.FormEvent<HTMLFormElement>) => {
+              event.preventDefault();
+              // handleOTP();
+            },
+            sx: { backgroundImage: 'none' },
+          },
+        }}
+      >
+        <DialogTitle>Reset password</DialogTitle>
+        <DialogContent
+          sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}
+        >
+          <DialogContentText>
+            Enter OTP
+          </DialogContentText>
+          <OutlinedInput
+            inputRef={otpRef}
+            autoFocus
+            required
+            margin="dense"
+            id="otp"
+            name="otp"
+            label="OTP"
+            placeholder="OTP"
+            type="number"
+            fullWidth
+          />
+        </DialogContent>
+
+        <DialogActions sx={{ pb: 3, px: 3 }}>
+          <Button onClick={()=>{
+            setOpen(false);
+            handleClose
+            }}>Change email</Button>
+          <Button variant="contained" type="submit">
             Continue
           </Button>
         </DialogActions>
@@ -150,3 +211,8 @@ export default function ForgotPassword({ open, handleClose }: ForgotPasswordProp
     {openOTP ? <OTPWindow/> : <EmailWindow/>}
   </>
 }
+
+
+// add reset window 
+// otp timer
+// fix the background
