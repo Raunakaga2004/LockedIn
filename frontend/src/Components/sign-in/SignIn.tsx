@@ -102,7 +102,7 @@ export default function SignIn(props: { disableCustomTheme?: boolean }) {
     }).catch((e)=>{
       console.log(import.meta.env.VITE_URL)
       console.log(e);
-      // showError("Invalid Details!")
+    showError("Invalid Details!")
     })
     
     console.log({
@@ -151,6 +151,10 @@ export default function SignIn(props: { disableCustomTheme?: boolean }) {
           >
             Sign in
           </Typography>
+          <ForgotPassword 
+            open={open} 
+            handleClose={handleClose} 
+          />
           <Box
             component="form"
             onSubmit={handleSubmit}
@@ -196,7 +200,10 @@ export default function SignIn(props: { disableCustomTheme?: boolean }) {
                 color={passwordError ? 'error' : 'primary'}
               />
             </FormControl>
-            <ForgotPassword open={open} handleClose={handleClose} />
+            {/* <ForgotPassword 
+              open={open} 
+              handleClose={handleClose} 
+            /> */}
             <Button
               type="submit"
               fullWidth
