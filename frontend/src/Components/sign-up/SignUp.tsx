@@ -42,7 +42,7 @@ const Card = styled(MuiCard)(({ theme }) => ({
 }));
 
 const SignUpContainer = styled(Stack)(({ theme }) => ({
-  height: 'calc((1 - var(--template-frame-height, 0)) * 100dvh)',
+  // height: 'calc((1 - var(--template-frame-height, 0)) * 100dvh)',
   minHeight: '100%',
   padding: theme.spacing(2),
   [theme.breakpoints.up('sm')]: {
@@ -174,8 +174,10 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
             onSubmit={handleSubmit}
             sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
           >
+            
+
             <FormControl>
-              <FormLabel htmlFor="lastname">Username</FormLabel>
+              <FormLabel htmlFor="username">Username</FormLabel>
               <TextField
                 autoComplete="username"
                 name="username"
@@ -194,7 +196,7 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
                 autoComplete="name"
                 name="name"
                 required
-                fullWidth
+                // fullWidth
                 id="firstname"
                 placeholder="firstname"
                 error={nameError}
@@ -208,7 +210,7 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
                 autoComplete="name"
                 name="lastName"
                 required
-                fullWidth
+                // fullWidth
                 id="lastname"
                 placeholder="lastname"
                 error={nameError}

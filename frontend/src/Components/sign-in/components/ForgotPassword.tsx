@@ -6,6 +6,9 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import OutlinedInput from '@mui/material/OutlinedInput';
+import axios from 'axios';
+import { showSuccess } from '../../../utils/toast';
+import { waitForAllSettled } from 'recoil';
 
 interface ForgotPasswordProps {
   open: boolean;
@@ -13,6 +16,29 @@ interface ForgotPasswordProps {
 }
 
 export default function ForgotPassword({ open, handleClose }: ForgotPasswordProps) {
+  const emailRef = React.useRef<HTMLInputElement>(null)
+
+  const [processing, setpro] = React.useState<boolean>(false)
+
+  console.log(emailRef)
+
+  const handleForgotPassword = async ()=>{
+    setpro(true);
+    
+    axios.post(`${import.meta.env.VITE_URL}/user/forgotPassword`, {
+      email : emailRef.current?.value
+    })
+    .then(()=>{
+      showSuccess("OTP sent successfully!")
+      setpro(false)
+      handleClose();
+    })
+    .catch((e) => {
+      console.error(e)
+    })
+    
+  }
+
   return (
     <Dialog
       open={open}
@@ -22,7 +48,7 @@ export default function ForgotPassword({ open, handleClose }: ForgotPasswordProp
           component: 'form',
           onSubmit: (event: React.FormEvent<HTMLFormElement>) => {
             event.preventDefault();
-            handleClose();
+            handleForgotPassword();
           },
           sx: { backgroundImage: 'none' },
         },
@@ -33,10 +59,15 @@ export default function ForgotPassword({ open, handleClose }: ForgotPasswordProp
         sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}
       >
         <DialogContentText>
-          Enter your account&apos;s email address, and we&apos;ll send you a otp to
-          reset your password.
+          {processing ? <>
+            Sending OTP... Please don&apos;t close or refresh.
+          </> : <>
+            Enter your account&apos;s email address, and we&apos;ll send you a otp to
+            reset your password.
+          </>}
         </DialogContentText>
         <OutlinedInput
+          inputRef={emailRef}
           autoFocus
           required
           margin="dense"
@@ -48,9 +79,10 @@ export default function ForgotPassword({ open, handleClose }: ForgotPasswordProp
           fullWidth
         />
       </DialogContent>
+
       <DialogActions sx={{ pb: 3, px: 3 }}>
-        <Button onClick={handleClose}>Cancel</Button>
-        <Button variant="contained" type="submit">
+        <Button onClick={handleClose} disabled={processing}>Cancel</Button>
+        <Button variant="contained" type="submit" disabled={processing}>
           Continue
         </Button>
       </DialogActions>
