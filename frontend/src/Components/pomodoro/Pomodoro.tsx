@@ -22,9 +22,9 @@ export default function Pomodoro(){
   return <>
     <NavBar isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} username={user}/>
     
-    <div>
+    {/* <div>
       Pomodoro
-    </div>
+    </div> */}
 
     <div className="flex flex-row w-screen">
       {/* main timer */}
@@ -34,9 +34,9 @@ export default function Pomodoro(){
 
 
       {/* tasks */}
-      <div className="flex-1">
+      {/* <div className="flex-1">
         asdasd
-      </div>
+      </div> */}
 
     </div>
 
