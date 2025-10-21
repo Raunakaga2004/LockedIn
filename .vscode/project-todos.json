@@ -1,17 +1,37 @@
 [
   {
-    "id": "1760933302194",
-    "text": "customize settings button",
+    "id": "1760956725782",
+    "text": "recurrence view",
     "completed": false
   },
   {
-    "id": "1760933219584",
-    "text": "customize the timer and its settings",
+    "id": "1760956706405",
+    "text": "view by tag",
     "completed": false
   },
   {
-    "id": "1760933054392",
-    "text": "add place to add task",
+    "id": "1760956690867",
+    "text": "have tag window",
+    "completed": false
+  },
+  {
+    "id": "1760956684363",
+    "text": "have recurrence window",
+    "completed": false
+  },
+  {
+    "id": "1760956392790",
+    "text": "have eisenhower matrix view of tasks",
+    "completed": false
+  },
+  {
+    "id": "1760956290009",
+    "text": "create crud of task",
+    "completed": false
+  },
+  {
+    "id": "1760956255847",
+    "text": "make a task window",
     "completed": false
   }
 ]

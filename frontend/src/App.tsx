@@ -10,6 +10,7 @@ import AppTheme from './Components/shared-theme/AppTheme'
 import CssBaseline from '@mui/material/CssBaseline'
 
 import {RecoilRoot} from 'recoil'
+import Task from './Components/task/task'
 
 function App() {
 
@@ -22,6 +23,7 @@ function App() {
       <Route path='/signin' element={<SignIn/>}/>
       <Route path='/signup' element={<SignUp/>}/>
       <Route path='/pomodoro' element={<Pomodoro/>}/>
+      <Route path='/task' element={<Task/>}/>
     </Routes>
 
     <ToastContainer/>
