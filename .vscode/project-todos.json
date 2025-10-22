@@ -22,7 +22,7 @@
   {
     "id": "1760956392790",
     "text": "have eisenhower matrix view of tasks",
-    "completed": false
+    "completed": true
   },
   {
     "id": "1760956290009",
@@ -32,6 +32,6 @@
   {
     "id": "1760956255847",
     "text": "make a task window",
-    "completed": false
+    "completed": true
   }
 ]
