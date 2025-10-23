@@ -2,7 +2,11 @@ import { useEffect, useState, type SetStateAction } from "react";
 import NavBar from "../NavBar";
 import getUser from "../../utils/user";
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
-import { CheckBox, Delete, Edit } from "@mui/icons-material";
+import { CheckBox, CheckBoxOutlineBlank, Delete, Edit } from "@mui/icons-material";
+import tasks from "./temptask";
+import Single_Task from "./Single_Task";
+import AddTaskWindow from "./AddTaskWindow";
+
 
 export default function Task(){
   const [user, setUser] = useState("")
@@ -10,6 +14,8 @@ export default function Task(){
 
   const [noramalView, setView] = useState(true)
   const [value, setValue] = useState('option1');
+
+  const [open, setopen] = useState(false);
 
   useEffect(()=>{
     async function fetch(){
@@ -27,6 +33,10 @@ export default function Task(){
   const handleChange = (event: { target: { value: SetStateAction<string>; }; }) => {
     setValue(event.target.value);
   };
+
+  function handleSaveTask(taskData: any): void {
+    console.log("task saved")
+  }
 
   return <>
     <NavBar isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} username={user}/>
@@ -54,18 +64,15 @@ export default function Task(){
       <div className="flex flex-row justify-between">
           {/* normal view */}
 
-        <div className="bg-slate-300 w-full h-full">
+        <div className="bg-slate-200 w-full h-full">
           {/* task component */}
-          <button>+</button>
+          <button onClick={()=>setopen(true)}>+</button>
 
           <div>
             {/* task 1 */}
-            <div className="flex flex-row">
-              <CheckBox/>
-              <div>task name</div>
-              <Edit/>
-              <Delete/>
-            </div>
+            {tasks.tasks.map((task, id) => 
+              <Single_Task key={id} task={task} id={id}/>
+            )}
           </div>
         </div>
 
@@ -77,11 +84,33 @@ export default function Task(){
       </div> : 
       <div className="grid grid-cols-2 grid-rows-2 gap-6 p-6 h-full w-full">
         {/* Eisenhower matrix view */}
-        <div>1</div>
-        <div>2</div>
-        <div>3</div>
-        <div>4</div>
+        <div className="bg-slate-200">
+          {/* important and urgent */}
+
+          <button>+</button>
+        </div>
+        <div className="bg-slate-200">
+          {/* important and not urgent */}
+
+          <button>+</button>
+        </div>
+        <div className="bg-slate-200">
+          {/* npt important and urgent */}
+
+          <button>+</button>
+        </div>
+        <div className="bg-slate-200">
+          {/* not important and not urgent */}
+
+          <button>+</button>
+        </div>
       </div>}
+
+      <AddTaskWindow
+        open={open}
+        onClose={() => setopen(false)}
+        onSave={handleSaveTask}
+      />
     </div>
   </>
 }
