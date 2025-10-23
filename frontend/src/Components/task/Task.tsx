@@ -6,6 +6,8 @@ import { CheckBox, CheckBoxOutlineBlank, Delete, Edit } from "@mui/icons-materia
 import tasks from "./temptask";
 import Single_Task from "./Single_Task";
 import AddTaskWindow from "./AddTaskWindow";
+import EisenhowerMatrixView from "./EisenhowerMatrixView";
+import NormalView from "./NormalView";
 
 
 export default function Task(){
@@ -60,51 +62,12 @@ export default function Task(){
         </FormControl>
       </div>
 
+      <button onClick={() => setopen(true)}>Add Task</button>
+
       {value === 'option1' ? 
-      <div className="flex flex-row justify-between">
-          {/* normal view */}
-
-        <div className="bg-slate-200 w-full h-full">
-          {/* task component */}
-          <button onClick={()=>setopen(true)}>+</button>
-
-          <div>
-            {/* task 1 */}
-            {tasks.tasks.map((task, id) => 
-              <Single_Task key={id} task={task} id={id}/>
-            )}
-          </div>
-        </div>
-
-        <div>
-          {/* report component */}
-          reports
-        </div>
-
-      </div> : 
-      <div className="grid grid-cols-2 grid-rows-2 gap-6 p-6 h-full w-full">
-        {/* Eisenhower matrix view */}
-        <div className="bg-slate-200">
-          {/* important and urgent */}
-
-          <button>+</button>
-        </div>
-        <div className="bg-slate-200">
-          {/* important and not urgent */}
-
-          <button>+</button>
-        </div>
-        <div className="bg-slate-200">
-          {/* npt important and urgent */}
-
-          <button>+</button>
-        </div>
-        <div className="bg-slate-200">
-          {/* not important and not urgent */}
-
-          <button>+</button>
-        </div>
-      </div>}
+      <NormalView/> 
+      : 
+      <EisenhowerMatrixView/>}
 
       <AddTaskWindow
         open={open}

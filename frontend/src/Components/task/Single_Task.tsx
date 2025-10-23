@@ -1,5 +1,6 @@
 import { CheckBox, CheckBoxOutlineBlank, Delete, Edit } from "@mui/icons-material";
 import React from "react";
+import EditTaskWindow from "./EditTaskWindow";
 
 type Task = {
   title: string;
@@ -17,10 +18,16 @@ type SingleTaskProps = {
 
 export default function Single_Task({ id, task }: SingleTaskProps) {
   const [hovered, setHovered] = React.useState(false);
+  const [open, setopen] = React.useState(false)
 
   const handleTaskCheck = ()=>{
-    
+
   }
+
+  const handleSaveEditedTask = (updatedTask: any) => {
+    console.log("Updated Task:", updatedTask);
+    // update in backend or global state
+  };
 
   return <div
     key={id}
@@ -34,14 +41,21 @@ export default function Single_Task({ id, task }: SingleTaskProps) {
 
     <div className="relative">
       <div>{task.title}</div>
-      {hovered && (
+      {/* {hovered && (
         <div className="">
           {task.description}
         </div>
-      )}
+      )} */}
     </div>
 
     <Delete />
-    <Edit />
+    <Edit onClick={()=>setopen(true)}/>
+
+    <EditTaskWindow
+      open={open}
+      onClose={() => setopen(false)}
+      onSave={handleSaveEditedTask}
+      task={task}
+    />
   </div>
 }
