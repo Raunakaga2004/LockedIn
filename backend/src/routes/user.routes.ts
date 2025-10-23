@@ -138,7 +138,8 @@ router.post('/signin',validateZod(SignInSchema), async (req, res) => {
       sameSite : "none",
       path : '/'
     }).json({
-      message : "Signin Successfull!"
+      message : "Signin Successfull!",
+      token : token
     })
   }
   catch(e){

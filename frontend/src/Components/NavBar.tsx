@@ -28,11 +28,6 @@ export default function NavBar({isLoggedIn, setIsLoggedIn, username} : NavBarPro
   }
 
   async function handleSignOut(){
-    // document.cookie.split(";").forEach(cookie => {
-    //   const name = cookie.split("=")[0].trim();
-    //   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-    // });
-
     axios.post(`${import.meta.env.VITE_URL}/user/signout`,{},{
       withCredentials : true
     }).then(()=>{

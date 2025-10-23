@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import NavBar from "./NavBar";
 import AppTheme from "./shared-theme/AppTheme";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const theme = createTheme({
   palette: {
@@ -24,6 +25,8 @@ export default function Home(props: { disableCustomTheme?: boolean }) {
   const [user, setUser] = useState("")
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
+  const navigate = useNavigate()
+
   useEffect(()=>{
     async function fetch(){
       const res = await axios.get(`${import.meta.env.VITE_URL}/user`, {
@@ -35,6 +38,9 @@ export default function Home(props: { disableCustomTheme?: boolean }) {
         setUser(res.data.user.username)
         setIsLoggedIn(true);
       }
+      // else {
+      //   navigate('/signin')
+      // }
     }
     fetch();
   },[isLoggedIn])

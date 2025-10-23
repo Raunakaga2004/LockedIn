@@ -1,37 +1,22 @@
 [
   {
-    "id": "1760956725782",
-    "text": "recurrence view",
+    "id": "1761202470325",
+    "text": "add tag page",
     "completed": false
   },
   {
-    "id": "1760956706405",
-    "text": "view by tag",
+    "id": "1761202439943",
+    "text": "add tag feature",
     "completed": false
   },
   {
-    "id": "1760956690867",
-    "text": "have tag window",
+    "id": "1761202421959",
+    "text": "add description show way",
     "completed": false
   },
   {
-    "id": "1760956684363",
-    "text": "have recurrence window",
+    "id": "1761202408219",
+    "text": "fix single task error",
     "completed": false
-  },
-  {
-    "id": "1760956392790",
-    "text": "have eisenhower matrix view of tasks",
-    "completed": true
-  },
-  {
-    "id": "1760956290009",
-    "text": "create crud of task",
-    "completed": false
-  },
-  {
-    "id": "1760956255847",
-    "text": "make a task window",
-    "completed": true
   }
 ]

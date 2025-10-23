@@ -7,6 +7,7 @@ import { validateZod } from "../middlewares/validateZod";
 
 // zod schema
 import { RecurrenceSchema, TaskSchema } from "../schemas/task.schema";
+import fa from "zod/v4/locales/fa.cjs";
 
 const router = Router();
 
@@ -332,6 +333,8 @@ router.get(
       if (updated_At) {
         data.updated_At = updated_At;
       }
+      
+      data.delete = false
 
       data.user_id = userId;
 

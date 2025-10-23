@@ -22,7 +22,7 @@ type TaskReference = {
   id?: string;
   title: string;
   description?: string;
-  type?: TaskType;
+  type?: TaskType | string; // fix it later (it should not be string)
   status: string;
   urgent?: boolean;
   important?: boolean;
