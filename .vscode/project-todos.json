@@ -1,5 +1,20 @@
 [
   {
+    "id": "1761282576685",
+    "text": "on click of task show detail in small window",
+    "completed": false
+  },
+  {
+    "id": "1761282561071",
+    "text": "show description on hover of tasks",
+    "completed": false
+  },
+  {
+    "id": "1761282455666",
+    "text": "add api links to frontend",
+    "completed": false
+  },
+  {
     "id": "1761202470325",
     "text": "add tag page",
     "completed": false

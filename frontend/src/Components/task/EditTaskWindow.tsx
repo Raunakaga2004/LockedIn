@@ -107,7 +107,6 @@ export default function EditTaskWindow({ open, task, onClose, onSave }: EditTask
         <TextField
           fullWidth
           label="Description"
-          multiline
           rows={3}
           variant="outlined"
           value={formData.description || ""}
