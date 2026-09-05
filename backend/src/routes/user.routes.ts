@@ -18,6 +18,19 @@ import { sendEmail } from '../utils/emailService';
 
 const router = Router();
 
+// `Secure` cookies are silently dropped by every browser over plain HTTP -
+// hardcoding secure:true/sameSite:"none" meant the signin cookie was never
+// actually stored on http://localhost, so the very next authenticated
+// request 401'd even though signin itself returned 200. sameSite:"none"
+// also requires secure:true by spec, so the two must move together.
+const isProduction = process.env.NODE_ENV === "production";
+const authCookieOptions = {
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: (isProduction ? "none" : "lax") as "none" | "lax",
+  path: "/",
+};
+
 router.get('/', verifyToken, async (req, res) => {
   // to get the user data
   try{
@@ -133,12 +146,7 @@ router.post('/signin',validateZod(SignInSchema), async (req, res) => {
       expiresIn : "1d"
     })
 
-    return res.status(200).cookie("token", token, {
-      httpOnly: true,
-      secure : true,
-      sameSite : "none",
-      path : '/'
-    }).json({
+    return res.status(200).cookie("token", token, authCookieOptions).json({
       message : "Signin Successfull!",
       token : token
     })
@@ -153,12 +161,7 @@ router.post('/signin',validateZod(SignInSchema), async (req, res) => {
 
 router.post('/signout', (req, res) => {
   try{
-    return res.status(200).clearCookie("token", {
-      httpOnly: true,
-      secure : true,
-      sameSite : "none",
-      path : '/'
-    }).json({
+    return res.status(200).clearCookie("token", authCookieOptions).json({
       message : "Signout Successfull!"
     })
   }

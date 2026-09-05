@@ -10,7 +10,7 @@ import AppTheme from './Components/shared-theme/AppTheme'
 import CssBaseline from '@mui/material/CssBaseline'
 
 import {RecoilRoot} from 'recoil'
-import Task from './Components/task/task'
+import Task from './Components/task/Task'
 
 function App() {
 
