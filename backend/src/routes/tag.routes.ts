@@ -7,40 +7,46 @@ import { validateZod } from "../middlewares/validateZod";
 //zod schema
 import { TagSchema } from "../schemas/tag.schema";
 import prisma from "../config/prisma";
-import { type } from "node:os";
+import { pickDefined } from "../utils/pick";
+import { findOwned, updateOwned } from "../utils/ownership";
 
 const router = Router();
 
-router.post("/createTag",validateZod(TagSchema),verifyToken,async (req, res) => {
-    try {
-      const { tag_name, description, color_code } = req.body;
+const TAG_FIELDS = ["tag_name", "description", "color_code"] as const;
 
-      const userId = (req as any).user.userId;
+router.post("/createTag", verifyToken, validateZod(TagSchema), async (req, res) => {
+  try {
+    const { tag_name, description, color_code } = req.body;
 
-      await prisma.tag.create({
-        data: {
-          user_id: userId,
-          tag_name: tag_name,
-          description: description,
-          color_code: color_code,
-        },
-      });
-
-      return res.status(200).json({
-        message: "Tag created successfully",
-      });
-    } catch (e) {
-      console.log(e);
-      return res.status(500).json({
-        error: "Internal Server Error!",
-      });
+    if (!tag_name) {
+      return res.status(400).json({ error: "tag_name is required" });
     }
+
+    const userId = req.user!.userId;
+
+    await prisma.tag.create({
+      data: {
+        user_id: userId,
+        tag_name,
+        description,
+        color_code,
+      },
+    });
+
+    return res.status(200).json({
+      message: "Tag created successfully",
+    });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      error: "Internal Server Error!",
+    });
   }
-);
+});
 
 router.delete("/deleteTag", verifyToken, async (req, res) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.user!.userId;
     const tagId = req.query.tag_id;
 
     if (typeof tagId !== "string") {
@@ -49,26 +55,15 @@ router.delete("/deleteTag", verifyToken, async (req, res) => {
       });
     }
 
-    const tag = await prisma.tag.findUnique({
-      where: {
-        id: tagId,
-      },
+    const { count } = await updateOwned(prisma.tag, tagId, userId, {
+      delete: true,
     });
 
-    if (!tag || tag.user_id != userId) {
+    if (count === 0) {
       return res.status(404).json({
         error: "Tag not found",
       });
     }
-
-    await prisma.tag.update({
-      where: {
-        id: tagId,
-      },
-      data: {
-        delete: true,
-      },
-    });
 
     return res.status(200).json({
       message: "Tag deleted successfully",
@@ -82,75 +77,9 @@ router.delete("/deleteTag", verifyToken, async (req, res) => {
 });
 
 router.put("/updateTag", verifyToken, validateZod(TagSchema), async (req, res) => {
-    try {
-      const { tag_name, description, color_code } = req.body;
-
-      const tagId = req.query.tag_id;
-
-      const userId = (req as any).user.userId;
-
-      if (!tagId || typeof tagId !== "string") {
-        return res.status(400).json({
-          error: "Invalid tag id",
-        });
-      }
-
-      const tag = await prisma.tag.findUnique({
-        where: {
-          id: tagId,
-        },
-      });
-
-      if (tag?.delete === true) {
-        return res.status(400).json({
-          error: "Tag is deleted",
-        });
-      }
-
-      if (!tag || tag.user_id != userId) {
-        return res.status(404).json({
-          error: "Tag not found",
-        });
-      }
-
-      const updatedData: any = {};
-
-      if (tag_name === undefined) {
-        updatedData.tag_name = tag.tag_name;
-      } else updatedData.tag_name = tag_name;
-
-      if (description === undefined) {
-        updatedData.description = tag.description;
-      } else updatedData.description = description;
-
-      if (color_code === undefined) {
-        updatedData.color_code = tag.color_code;
-      } else updatedData.color_code = color_code;
-
-      await prisma.tag.update({
-        where: {
-          id: tagId,
-        },
-        data: updatedData,
-      });
-
-      return res.status(200).json({
-        message: "Tag updated successfully",
-      });
-    } catch (e) {
-      console.log(e);
-      return res.status(500).json({
-        error: "Internal Server Error!",
-      });
-    }
-  }
-);
-
-router.get("/getTagById", verifyToken, async (req, res) => {
   try {
     const tagId = req.query.tag_id;
-
-    const userId = (req as any).user.userId;
+    const userId = req.user!.userId;
 
     if (typeof tagId !== "string") {
       return res.status(400).json({
@@ -158,21 +87,48 @@ router.get("/getTagById", verifyToken, async (req, res) => {
       });
     }
 
-    const tag = await prisma.tag.findUnique({
-      where: {
-        id: tagId,
-      },
-    });
+    const existing = await findOwned(prisma.tag, tagId, userId, { delete: false });
 
-    if (!tag || tag.user_id != userId) {
+    if (!existing) {
       return res.status(404).json({
         error: "Tag not found",
       });
     }
 
-    if (tag?.delete === true) {
+    const data = pickDefined(req.body, TAG_FIELDS);
+
+    await prisma.tag.update({
+      where: { id: tagId },
+      data,
+    });
+
+    return res.status(200).json({
+      message: "Tag updated successfully",
+    });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      error: "Internal Server Error!",
+    });
+  }
+});
+
+router.get("/getTagById", verifyToken, async (req, res) => {
+  try {
+    const tagId = req.query.tag_id;
+    const userId = req.user!.userId;
+
+    if (typeof tagId !== "string") {
       return res.status(400).json({
-        error: "Tag is deleted",
+        error: "Invalid tag id",
+      });
+    }
+
+    const tag = await findOwned(prisma.tag, tagId, userId, { delete: false });
+
+    if (!tag) {
+      return res.status(404).json({
+        error: "Tag not found",
       });
     }
 
@@ -189,18 +145,17 @@ router.get("/getTagById", verifyToken, async (req, res) => {
 
 router.get("/getAllTags", verifyToken, async (req, res) => {
   try {
-    const userId = (req as any).user.user_id;
+    const userId = req.user!.userId;
 
     const tags = await prisma.tag.findMany({
       where: {
         user_id: userId,
+        delete: false,
       },
     });
 
-    const updatedTags = tags.filter((tag) => !tag.delete);
-
     return res.status(200).json({
-      tags: updatedTags,
+      tags: tags,
     });
   } catch (e) {
     console.log(e);
@@ -213,8 +168,7 @@ router.get("/getAllTags", verifyToken, async (req, res) => {
 router.get("/getTagByName", verifyToken, async (req, res) => {
   try {
     const searchTerm = req.query?.search;
-
-    const userId = (req as any).user.userId;
+    const userId = req.user!.userId;
 
     if (typeof searchTerm !== "string") {
       return res.status(400).json({
@@ -224,19 +178,17 @@ router.get("/getTagByName", verifyToken, async (req, res) => {
 
     const tags = await prisma.tag.findMany({
       where: {
+        user_id: userId,
+        delete: false,
         tag_name: {
-          contains: searchTerm, // check if this term matches the tag_name or contains it
-          mode: "insensitive", // for case-insensitive
+          contains: searchTerm,
+          mode: "insensitive",
         },
       },
     });
 
-    const updatedTags = tags.filter(
-      (tag) => !tag.delete && tag.user_id === userId
-    );
-
     return res.status(200).json({
-      tags: updatedTags,
+      tags: tags,
     });
   } catch (e) {
     console.log(e);
@@ -250,8 +202,7 @@ router.get("/getTagByColorCode", verifyToken, async (req, res) => {
   try {
     // need to add %23 for '#' in query
     const color_code = req.query.color;
-
-    const userId = (req as any).user.userId;
+    const userId = req.user!.userId;
 
     if (typeof color_code !== "string") {
       return res.status(400).json({
@@ -261,16 +212,14 @@ router.get("/getTagByColorCode", verifyToken, async (req, res) => {
 
     const tags = await prisma.tag.findMany({
       where: {
-        color_code: color_code,
+        user_id: userId,
+        delete: false,
+        color_code,
       },
     });
 
-    const updatedTags = tags.filter(
-      (tag) => !tag.delete && tag.user_id === userId
-    );
-
     return res.status(200).json({
-      tags: updatedTags,
+      tags: tags,
     });
   } catch (e) {
     console.log(e);
@@ -284,10 +233,9 @@ router.get("/getTagByCreatedDate", verifyToken, async (req, res) => {
   try {
     // send timestamp by query
     const timestamp = Number(req.query.timestamp);
+    const userId = req.user!.userId;
 
-    const userId = (req as any).user.userId;
-
-    if (typeof timestamp !== "number") {
+    if (!req.query.timestamp || Number.isNaN(timestamp)) {
       return res.status(400).json({
         error: "Invalid timestamp",
       });
@@ -295,16 +243,14 @@ router.get("/getTagByCreatedDate", verifyToken, async (req, res) => {
 
     const tags = await prisma.tag.findMany({
       where: {
+        user_id: userId,
+        delete: false,
         created_At: new Date(timestamp),
       },
     });
 
-    const updatedTags = tags.filter(
-      (tag) => !tag.delete && tag.user_id === userId
-    );
-
     return res.status(200).json({
-      tags: updatedTags,
+      tags: tags,
     });
   } catch (e) {
     console.log(e);
@@ -318,9 +264,9 @@ router.get("/getTagByUpdatedDate", verifyToken, async (req, res) => {
   try {
     // send timestamp by query
     const timestamp = Number(req.query.timestamp);
-    const userId = (req as any).user.userId;
+    const userId = req.user!.userId;
 
-    if (typeof timestamp !== "number") {
+    if (!req.query.timestamp || Number.isNaN(timestamp)) {
       return res.status(400).json({
         error: "Invalid timestamp",
       });
@@ -328,16 +274,14 @@ router.get("/getTagByUpdatedDate", verifyToken, async (req, res) => {
 
     const tags = await prisma.tag.findMany({
       where: {
+        user_id: userId,
+        delete: false,
         updated_At: new Date(timestamp),
       },
     });
 
-    const updatedTags = tags.filter(
-      (tag) => !tag.delete && tag.user_id === userId
-    );
-
     return res.status(200).json({
-      tags: updatedTags,
+      tags: tags,
     });
   } catch (e) {
     console.log(e);

@@ -1,76 +1,49 @@
 import { Router } from "express";
 import { verifyToken } from "../middlewares/verifyToken";
 import { validateZod } from "../middlewares/validateZod";
-import { HabitSchema, HabitType } from "../schemas/habit.schema";
+import { HabitLogSchema, HabitSchema } from "../schemas/habit.schema";
 import prisma from "../config/prisma";
+import { pickDefined } from "../utils/pick";
+import { findOwned, updateOwned, deleteOwned } from "../utils/ownership";
 
 const router = Router();
 
+const HABIT_FIELDS = ["title", "description", "start_date", "end_date", "frequency", "interval"] as const;
+const HABIT_LOG_FIELDS = ["habit_id", "date", "notes", "completed"] as const;
+
 // createHabit
-router.post(
-  "/createHabit",
-  validateZod(HabitSchema),
-  verifyToken,
-  async (req, res) => {
-    try {
-      const userId = (req as any).user.userId;
+router.post("/createHabit", verifyToken, validateZod(HabitSchema), async (req, res) => {
+  try {
+    const userId = req.user!.userId;
+    const { title, frequency, days_of_week } = req.body;
 
-      const {
-        title,
-        description,
-        start_date,
-        end_date,
-        frequency,
-        interval,
-        days_of_week,
-      } = req.body;
-
-      const data: any = {
-        user_id: userId,
-      };
-
-      if (frequency !== "weekly") {
-        data.days_of_week = [];
-      } else data.days_of_week = days_of_week ?? [];
-
-      if (title) data.title = title;
-      else
-        return res.status(400).json({
-          message: "Title is required",
-        });
-
-      if (description) data.description = description;
-
-      if (start_date) data.start_date = start_date;
-      else data.start_date = new Date();
-
-      if (end_date) data.end_date = end_date;
-
-      if (frequency) data.frequency = frequency;
-      else data.frequency = "daily";
-
-      if (interval) data.interval = interval;
-      await prisma.habit.create({
-        data: data,
-      });
-
-      return res.status(200).json({
-        message: "Habit created successfully",
-      });
-    } catch (e) {
-      console.log(e);
-      return res.status(500).json({
-        error: "Internal Server Error!",
+    if (!title) {
+      return res.status(400).json({
+        message: "Title is required",
       });
     }
+
+    const data: any = pickDefined(req.body, HABIT_FIELDS);
+    data.user_id = userId;
+    data.days_of_week = frequency === "weekly" ? (days_of_week ?? []) : [];
+
+    await prisma.habit.create({ data });
+
+    return res.status(200).json({
+      message: "Habit created successfully",
+    });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      error: "Internal Server Error!",
+    });
   }
-);
+});
 
 // getHabit
 router.get("/getHabit", verifyToken, async (req, res) => {
   try {
-    const userId = (req as any).user.userId;
-
+    const userId = req.user!.userId;
     const habit_id = req.query.id;
 
     if (typeof habit_id !== "string") {
@@ -79,15 +52,11 @@ router.get("/getHabit", verifyToken, async (req, res) => {
       });
     }
 
-    const habit = await prisma.habit.findUnique({
-      where: {
-        id: habit_id,
-      },
-    });
+    const habit = await findOwned(prisma.habit, habit_id, userId);
 
-    if (habit?.user_id !== userId) {
+    if (!habit) {
       return res.status(404).json({
-        error: "Invalid user habit",
+        error: "Habit not found",
       });
     }
 
@@ -105,11 +74,12 @@ router.get("/getHabit", verifyToken, async (req, res) => {
 // getAllHabit
 router.get("/getAllHabit", verifyToken, async (req, res) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.user!.userId;
 
     const habits = await prisma.habit.findMany({
       where: {
         user_id: userId,
+        delete: false,
       },
     });
 
@@ -125,82 +95,9 @@ router.get("/getAllHabit", verifyToken, async (req, res) => {
 });
 
 // updateHabit
-router.put(
-  "/updateHabit",
-  verifyToken,
-  validateZod(HabitSchema),
-  async (req, res) => {
-    try {
-      const userId = (req as any).user.userId;
-
-      const habit_id = req.query.id;
-
-      if (typeof habit_id !== "string") {
-        return res.status(400).json({
-          error: "Invalid habit id",
-        });
-      }
-
-      const {
-        title,
-        description,
-        start_date,
-        end_date,
-        frequency,
-        interval,
-        days_of_week,
-      } = req.body;
-
-      const data: any = {
-        user_id: userId,
-      };
-
-      if (frequency !== "weekly") {
-        data.days_of_week = [];
-      } else data.days_of_week = days_of_week ?? [];
-
-      if (title) data.title = title;
-      else
-        return res.status(400).json({
-          message: "Title is required",
-        });
-
-      if (description) data.description = description;
-
-      if (start_date) data.start_date = start_date;
-      else data.start_date = new Date();
-
-      if (end_date) data.end_date = end_date;
-
-      if (frequency) data.frequency = frequency;
-      else data.frequency = "daily";
-
-      if (interval) data.interval = interval;
-
-      await prisma.habit.update({
-        where: {
-          id: habit_id,
-        },
-        data: data,
-      });
-
-      return res.status(200).json({
-        message: "habit updated successfully!",
-      });
-    } catch (e) {
-      console.log(e);
-      return res.status(500).json({
-        error: "Internal Server Error!",
-      });
-    }
-  }
-);
-
-// deleteHabit
-router.delete("/deleteHabit", verifyToken, async (req, res) => {
+router.put("/updateHabit", verifyToken, validateZod(HabitSchema), async (req, res) => {
   try {
-    const userId = (req as any).user.userId;
-
+    const userId = req.user!.userId;
     const habit_id = req.query.id;
 
     if (typeof habit_id !== "string") {
@@ -209,11 +106,56 @@ router.delete("/deleteHabit", verifyToken, async (req, res) => {
       });
     }
 
-    await prisma.habit.delete({
-      where: {
-        id: habit_id,
-      },
+    const { frequency, days_of_week } = req.body;
+
+    const data: any = pickDefined(req.body, HABIT_FIELDS);
+    if (frequency !== undefined) {
+      data.days_of_week = frequency === "weekly" ? (days_of_week ?? []) : [];
+    }
+
+    const { count } = await updateOwned(prisma.habit, habit_id, userId, data);
+
+    if (count === 0) {
+      return res.status(404).json({
+        error: "Habit not found",
+      });
+    }
+
+    return res.status(200).json({
+      message: "habit updated successfully!",
     });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      error: "Internal Server Error!",
+    });
+  }
+});
+
+// deleteHabit
+router.delete("/deleteHabit", verifyToken, async (req, res) => {
+  try {
+    const userId = req.user!.userId;
+    const habit_id = req.query.id;
+
+    if (typeof habit_id !== "string") {
+      return res.status(400).json({
+        error: "Invalid habit id",
+      });
+    }
+
+    // Soft-delete, matching the `delete` flag the rest of the schema uses,
+    // and matching the fact that Habit_Log/Time_Blocking rows reference
+    // this habit (a hard delete would orphan or FK-violate those).
+    const { count } = await updateOwned(prisma.habit, habit_id, userId, {
+      delete: true,
+    });
+
+    if (count === 0) {
+      return res.status(404).json({
+        error: "Habit not found",
+      });
+    }
 
     return res.status(200).json({
       message: "habit deleted successfully!",
@@ -229,10 +171,9 @@ router.delete("/deleteHabit", verifyToken, async (req, res) => {
 // at 12:01 AM we need to add the current habits to log using node-cron
 
 // updateHabitLog
-router.put("/updateHabitLog", verifyToken, async (req, res) => {
+router.put("/updateHabitLog", verifyToken, validateZod(HabitLogSchema), async (req, res) => {
   try {
-    const userId = (req as any).user.userId;
-
+    const userId = req.user!.userId;
     const id = req.query.id;
 
     if (typeof id !== "string") {
@@ -241,31 +182,18 @@ router.put("/updateHabitLog", verifyToken, async (req, res) => {
       });
     }
 
-    const { habit_id, date, notes, completed } = req.body;
+    const data = pickDefined(req.body, HABIT_LOG_FIELDS);
 
-    const data: any = {
-      user_id: userId,
-    };
+    const { count } = await updateOwned(prisma.habit_Log, id, userId, data);
 
-    if (habit_id) {
-      data.habit_id = habit_id;
+    if (count === 0) {
+      return res.status(404).json({
+        error: "Habit log not found",
+      });
     }
 
-    if (date) data.date = date;
-
-    if (notes) data.notes = notes;
-
-    if (completed) data.completed = completed;
-
-    await prisma.habit_Log.update({
-      where: {
-        id: id,
-      },
-      data: data,
-    });
-
     return res.status(200).json({
-      message: "Habit Log created successfully",
+      message: "Habit Log updated successfully",
     });
   } catch (e) {
     console.log(e);
@@ -278,8 +206,7 @@ router.put("/updateHabitLog", verifyToken, async (req, res) => {
 // deleteHabitLog
 router.delete("/deleteHabitLog", verifyToken, async (req, res) => {
   try {
-    const userId = (req as any).user.userId;
-
+    const userId = req.user!.userId;
     const id = req.query.id;
 
     if (typeof id !== "string") {
@@ -288,11 +215,13 @@ router.delete("/deleteHabitLog", verifyToken, async (req, res) => {
       });
     }
 
-    await prisma.habit_Log.delete({
-      where: {
-        id: id,
-      },
-    });
+    const { count } = await deleteOwned(prisma.habit_Log, id, userId);
+
+    if (count === 0) {
+      return res.status(404).json({
+        error: "Habit log not found",
+      });
+    }
 
     return res.status(200).json({
       message: "habit log deleted successfully!",
@@ -306,33 +235,29 @@ router.delete("/deleteHabitLog", verifyToken, async (req, res) => {
 });
 
 // addHabitLog
-router.post("/addHabitLog", verifyToken, async (req, res) => {
+router.post("/addHabitLog", verifyToken, validateZod(HabitLogSchema), async (req, res) => {
   try {
-    const userId = (req as any).user.userId;
-
-    const { habit_id, date, notes, completed } = req.body;
-
-    const data: any = {
-      user_id: userId,
-    };
+    const userId = req.user!.userId;
+    const { habit_id } = req.body;
 
     if (!habit_id) {
       return res.status(400).json({
         message: "please provide habit id",
       });
-    } else {
-      data.habit_id = habit_id;
     }
 
-    if (date) data.date = date;
+    // make sure the habit being logged actually belongs to this user
+    const habit = await findOwned(prisma.habit, habit_id, userId);
+    if (!habit) {
+      return res.status(400).json({
+        message: "habit not found",
+      });
+    }
 
-    if (notes) data.notes = notes;
+    const data: any = pickDefined(req.body, HABIT_LOG_FIELDS);
+    data.user_id = userId;
 
-    if (completed) data.completed = completed;
-
-    await prisma.habit_Log.create({
-      data: data,
-    });
+    await prisma.habit_Log.create({ data });
 
     return res.status(200).json({
       message: "Habit Log created successfully",
@@ -345,11 +270,10 @@ router.post("/addHabitLog", verifyToken, async (req, res) => {
   }
 });
 
-// getHabitLogs
+// getHabitLog
 router.get("/getHabitLog", verifyToken, async (req, res) => {
   try {
-    const userId = (req as any).user.userId;
-
+    const userId = req.user!.userId;
     const id = req.query.id;
 
     if (typeof id !== "string") {
@@ -358,11 +282,13 @@ router.get("/getHabitLog", verifyToken, async (req, res) => {
       });
     }
 
-    const habitlog = await prisma.habit_Log.findUnique({
-      where: {
-        id: id,
-      },
-    });
+    const habitlog = await findOwned(prisma.habit_Log, id, userId);
+
+    if (!habitlog) {
+      return res.status(404).json({
+        error: "Habit log not found",
+      });
+    }
 
     return res.status(200).json({
       habit_log: habitlog,
@@ -375,10 +301,10 @@ router.get("/getHabitLog", verifyToken, async (req, res) => {
   }
 });
 
+// getHabitLogs - all logs for one habit
 router.get("/getHabitLogs", verifyToken, async (req, res) => {
   try {
-    const userId = (req as any).user.userId;
-
+    const userId = req.user!.userId;
     const habit_id = req.query.habit_id;
 
     if (typeof habit_id !== "string") {
@@ -390,6 +316,7 @@ router.get("/getHabitLogs", verifyToken, async (req, res) => {
     const habit_logs = await prisma.habit_Log.findMany({
       where: {
         habit_id: habit_id,
+        user_id: userId,
       },
     });
 
@@ -404,22 +331,13 @@ router.get("/getHabitLogs", verifyToken, async (req, res) => {
   }
 });
 
-// getAllHabitLogs
+// getAllHabitLogs - every log for this user
 router.get("/getAllHabitLogs", verifyToken, async (req, res) => {
   try {
-    const userId = (req as any).user.userId;
-
-    const id = req.query.id;
-
-    if (typeof id !== "string") {
-      return res.status(400).json({
-        error: "Invalid habit log id",
-      });
-    }
+    const userId = req.user!.userId;
 
     const all_habit_logs = await prisma.habit_Log.findMany({
       where: {
-        habit_id: id,
         user_id: userId,
       },
     });
@@ -438,6 +356,7 @@ router.get("/getAllHabitLogs", verifyToken, async (req, res) => {
 // getHabitSummary
 router.get("/getHabitsSummary", verifyToken, async (req, res) => {
   try {
+    return res.status(501).json({ error: "Not implemented" });
   } catch (e) {
     console.log(e);
     return res.status(500).json({
@@ -449,6 +368,7 @@ router.get("/getHabitsSummary", verifyToken, async (req, res) => {
 // getAllHabitSummary
 router.get("/getAllHabitsSummary", verifyToken, async (req, res) => {
   try {
+    return res.status(501).json({ error: "Not implemented" });
   } catch (e) {
     console.log(e);
     return res.status(500).json({
@@ -456,3 +376,5 @@ router.get("/getAllHabitsSummary", verifyToken, async (req, res) => {
     });
   }
 });
+
+export default router;

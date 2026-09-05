@@ -4,638 +4,39 @@ import { verifyToken } from "../middlewares/verifyToken";
 import prisma from "../config/prisma";
 import { validateZod } from "../middlewares/validateZod";
 import { WorkoutExerciseLogSchema, WorkoutPlanExerciseSchema, WorkoutPlanSchema, WorkoutSessionLogSchema } from "../schemas/workout.schema";
+import { pickDefined } from "../utils/pick";
+import { findOwned, updateOwned, deleteOwned } from "../utils/ownership";
 
 const router = Router();
 
-// create workout plan
-router.get("/addWorkoutPlan", verifyToken, validateZod(WorkoutPlanSchema), async (req, res) => {
+const PLAN_FIELDS = ["title", "description"] as const;
+const EXERCISE_FIELDS = ["exercise_name", "description", "order", "notes"] as const;
+const SESSION_LOG_FIELDS = ["workout_plan_id", "notes", "start_time", "end_time"] as const;
+const EXERCISE_LOG_FIELDS = [
+  "workout_session_log_id",
+  "workout_plan_exercise_id",
+  "set",
+  "reps",
+  "rest",
+  "start_time",
+  "end_time",
+  "max_weight",
+  "notes",
+] as const;
+
+// ---- Workout Plan ----
+
+router.post("/addWorkoutPlan", verifyToken, validateZod(WorkoutPlanSchema), async (req, res) => {
   try {
-    const userId = (req as any).user.userId;
-
-    const {title, description} = req.body;
-
-    const data : any = {};
-
-    if(title) data.title = title;
-
-    if(description) data.description = description;
-    
-    await prisma.workout_Plan.create({
-      data : data
-    })
-
-    return res.status(200).json({
-      message : "Workout Plan created Successfully!"
-    })
-  } catch (e) {
-    console.log(e);
-    return res.status(500).json({
-      error: "Internal Server Error!",
-    });
-  }
-});
-
-// delete workout plan
-router.get("/deleteWorkoutPlan", verifyToken, async (req, res) => {
-  try {
-    const userId = (req as any).user.userId;
-
-    const id = req.query.id;
-
-    if (typeof id !== "string") {
-      return res.status(400).json({
-        error: "Invalid habit id",
-      });
-    }
-
-    await prisma.workout_Plan.delete({
-      where : {
-        id : id
-      }
-    })
-
-    return res.status(200).json({
-      message : "Deleted Successfully!"
-    })
-  } catch (e) {
-    console.log(e);
-    return res.status(500).json({
-      error: "Internal Server Error!",
-    });
-  }
-});
-
-// get workout plan
-router.get("/getWorkoutPlan", verifyToken, async (req, res) => {
-  try {
-    const userId = (req as any).user.userId;
-
-    const id = req.query.id;
-
-    if (typeof id !== "string") {
-      return res.status(400).json({
-        error: "Invalid habit id",
-      });
-    }
-
-    const workoutPlan = prisma.workout_Plan.findUnique({
-      where : {
-        id : id
-      }
-    })
-
-    return res.status(200).json({
-      workoutPlan
-    })
-  } catch (e) {
-    console.log(e);
-    return res.status(500).json({
-      error: "Internal Server Error!",
-    });
-  }
-});
-
-// get all workout plan
-router.get("/getAllWorkoutPlan", verifyToken, async (req, res) => {
-  try {
-    const userId = (req as any).user.userId;
-
-    const workoutPlans = await prisma.workout_Plan.findMany({
-      where : {
-        user_id : userId
-      }
-    })
-
-    return res.status(200).json({
-      workoutPlans
-    })
-  } catch (e) {
-    console.log(e);
-    return res.status(500).json({
-      error: "Internal Server Error!",
-    });
-  }
-});
-
-// update workout plan (also add workout plan exercises)
-router.get("/updateWorkoutPlan", verifyToken, validateZod(WorkoutPlanSchema), async (req, res) => {
-  try {
-    const userId = (req as any).user.userId;
-
-    const id = req.query.id;
-
-    if (typeof id !== "string") {
-      return res.status(400).json({
-        error: "Invalid habit id",
-      });
-    }
-
-    const {title, description} = req.body;
-
-    const data : any = {}
-
-    if(title) data.title = title;
-
-    if(description) data.description = description;
-
-    await prisma.workout_Plan.update({
-      where : {
-        id : id
-      },
-      data : data
-    })
-
-    return res.status(200).json({
-      message : "workout plan updated successfully!"
-    })
-    
-  } catch (e) {
-    console.log(e);
-    return res.status(500).json({
-      error: "Internal Server Error!",
-    });
-  }
-});
-
-// add exercises to workout plan
-router.get("/addExercise", verifyToken, validateZod(WorkoutPlanExerciseSchema), async (req, res) => {
-  try {
-    const userId = (req as any).user.userId;
-
-    const {workout_plan_id, exercise_name, description, order, notes} = req.body;
-
-    const data : any = {};
-
-    if(!workout_plan_id){
-      return res.status(400).json({
-        message : "workout plan not found"
-      })
-    }
-    else{
-      const workout_plan = await prisma.workout_Plan.findUnique({
-        where : {
-          id : workout_plan_id
-        }
-      })
-
-      if(!workout_plan || workout_plan?.user_id !== userId){
-        return res.status(400).json({
-          message : "workout plan not found"
-        })
-      }
-
-      data.workout_plan_id = workout_plan_id
-    }
-
-    if(exercise_name) data.exercise_name = exercise_name
-
-    if(description) data.description = description
-
-    if(order) data.order = order
-
-    if(notes) data.notes = notes
-
-    await prisma.workout_Plan_Exercise.create({
-      data : data
-    })
-
-    return res.status(200).json({
-      message : "workout plan exercise added."
-    })
-    
-  } catch (e) {
-    console.log(e);
-    return res.status(500).json({
-      error: "Internal Server Error!",
-    });
-  }
-});
-
-// delete exercise to workout plan
-router.get("/deleteExercise", verifyToken, async (req, res) => {
-  try {
-    const userId = (req as any).user.userId;
-
-    const id = req.query.id;
-
-    if(typeof id !== "string"){
-      return res.status(400).json({
-        message : "please correct id"
-      })
-    }
-
-    await prisma.workout_Plan_Exercise.delete({
-      where : {
-        id : id
-      }
-    })
-
-    return res.status(200).json({
-      message : "workout plan exercise deleted successfully"
-    })
-  } catch (e) {
-    console.log(e);
-    return res.status(500).json({
-      error: "Internal Server Error!",
-    });
-  }
-});
-
-// update exercise to workout plan
-router.get("/updateExercise", verifyToken, validateZod(WorkoutPlanExerciseSchema), async (req, res) => {
-  try {
-    const userId = (req as any).user.userId;
-
-    const id = req.query.id;
-
-    if(typeof id !== "string"){
-      return res.status(400).json({
-        message : "please correct id"
-      })
-    }
-
-    const {workout_plan_id, exercise_name, description, order, notes} = req.body;
-
-    const data : any = {};
-
-    if(!workout_plan_id){
-      return res.status(400).json({
-        message : "workout plan not found"
-      })
-    }
-    else{
-      const workout_plan = await prisma.workout_Plan.findUnique({
-        where : {
-          id : workout_plan_id
-        }
-      })
-
-      if(!workout_plan || workout_plan?.user_id !== userId){
-        return res.status(400).json({
-          message : "workout plan not found"
-        })
-      }
-
-      data.workout_plan_id = workout_plan_id
-    }
-
-    if(exercise_name) data.exercise_name = exercise_name
-
-    if(description) data.description = description
-
-    if(order) data.order = order
-
-    if(notes) data.notes = notes
-
-    await prisma.workout_Plan_Exercise.update({
-      where : {
-        id : id
-      },
-      data : data
-    })
-
-    return res.status(200).json({
-      message : "workout plan exercise updated."
-    })
-  } catch (e) {
-    console.log(e);
-    return res.status(500).json({
-      error: "Internal Server Error!",
-    });
-  }
-});
-
-// get particular exercise
-router.get("/getExercise", verifyToken, async (req, res) => {
-  try {
-    const userId = (req as any).user.userId;
-
-    const id = req.query.id;
-
-    if(typeof id !== "string"){
-      return res.status(400).json({
-        message : "please correct id"
-      })
-    }
-
-    const exercise = await prisma.workout_Plan_Exercise.findUnique({
-      where : {
-        id : id
-      }
-    })
-
-    return res.status(200).json({
-      exercise
-    })
-  } catch (e) {
-    console.log(e);
-    return res.status(500).json({
-      error: "Internal Server Error!",
-    });
-  }
-});
-
-// get exercise to workout plan
-router.get("/getExerciseOfWorkoutPlan", verifyToken, async (req, res) => {
-  try {
-    const userId = (req as any).user.userId;
-
-    const workout_plan_id = req.query.id;
-
-    if(typeof workout_plan_id !== "string"){
-      return res.status(400).json({
-        message : "please correct id"
-      })
-    }
-
-    if(!workout_plan_id){
-      return res.status(400).json({
-        message : "workout plan not found"
-      })
-    }
-    else{
-      const workout_plan = await prisma.workout_Plan.findUnique({
-        where : {
-          id : workout_plan_id
-        }
-      })
-
-      if(!workout_plan || workout_plan?.user_id !== userId){
-        return res.status(400).json({
-          message : "workout plan not found"
-        })
-      }
-    }
-
-    const exercises = await prisma.workout_Plan_Exercise.findMany({
-      where : {
-        workout_plan_id : workout_plan_id,
-        user_id : userId
-      }
-    })
-
-    return res.status(200).json({
-      exercises
-    })
-  } catch (e) {
-    console.log(e);
-    return res.status(500).json({
-      error: "Internal Server Error!",
-    });
-  }
-});
-
-// get all exercises
-router.get("/getAllExercises", verifyToken, async (req, res) => {
-  try {
-    const userId = (req as any).user.userId;
-
-    const exercises = await prisma.workout_Plan_Exercise.findMany({
-      where : {
-        user_id : userId
-      }
-    })
-
-    return res.status(200).json({
-      exercises
-    })
-  } catch (e) {
-    console.log(e);
-    return res.status(500).json({
-      error: "Internal Server Error!",
-    });
-  }
-});
-
-// add workout session log
-router.get("/addWorkoutSessionLog", verifyToken, validateZod(WorkoutSessionLogSchema), async (req, res) => {
-  try {
-    const userId = (req as any).user.userId;
-    
-    const {workout_plan_id, notes, start_time, end_time} = req.body;
-
-    const data : any = {};
-    
-    data.user_id = userId
-
-    if(workout_plan_id) data.workout_plan_id = workout_plan_id
-
-    if(notes) data.notes = notes
-
-    if(start_time) data.start_time = start_time
-
-    if(end_time) data.end_time = end_time
-
-
-    await prisma.workout_Session_Log.create({
-      data : data
-    })
-
-    return res.status(200).json({
-      message : "Workout Session log added Successfully!"
-    })
-
-  } catch (e) {
-    console.log(e);
-    return res.status(500).json({
-      error: "Internal Server Error!",
-    });
-  }
-});
-
-// update workout session log
-router.get("/updateWorkoutSessionLog", verifyToken, validateZod(WorkoutSessionLogSchema), async (req, res) => {
-  try {
-    const userId = (req as any).user.userId;
-
-    const id = req.query.id;
-
-    if(typeof id !== "string"){
-      return res.status(400).json({
-        message : "provide valid id"
-      })
-    }
-
-    const {workout_plan_id, notes, start_time, end_time} = req.body;
-
-    const data : any = {};
-
-    if(workout_plan_id) data.workout_plan_id = workout_plan_id
-
-    if(notes) data.notes = notes
-
-    if(start_time) data.start_time = start_time
-
-    if(end_time) data.end_time = end_time
-
-    await prisma.workout_Session_Log.update({
-      where : {
-        id : id
-      },
-      data : data
-    })
-
-    return res.status(200).json({
-      message : "workout session log updated successfully!"
-    })
-  } catch (e) {
-    console.log(e);
-    return res.status(500).json({
-      error: "Internal Server Error!",
-    });
-  }
-});
-
-// read workout session log
-router.get("/getWorkoutSessionLog", verifyToken, async (req, res) => {
-  try {
-    const userId = (req as any).user.userId;
-
-    const id = req.query.id;
-
-    if(typeof id !== "string"){
-      return res.status(400).json({
-        message : "provide valid id"
-      })
-    }
-
-    const workoutSessionLog = await prisma.workout_Session_Log.findUnique({
-      where : {
-        id : id
-      }
-    })
-
-    return res.status(200).json({
-      workoutSessionLog
-    })
-  } catch (e) {
-    console.log(e);
-    return res.status(500).json({
-      error: "Internal Server Error!",
-    });
-  }
-});
-
-// read workout session log of particular workout
-router.get("/getAllWorkoutSessionLogOfWorkout", verifyToken, async (req, res) => {
-  try {
-    const userId = (req as any).user.userId;
-
-    const id = req.body.id; // workout plan id
-
-    if(typeof id !== "string"){
-      return res.status(400).json({
-        message : "provide valid id"
-      })
-    }
-
-    const workoutSessionLogs = await prisma.workout_Session_Log.findMany({
-      where : {
-        workout_plan_id : id,
-        user_id : userId
-      }
-    })
-
-    return res.status(200).json({
-      workoutSessionLogs
-    })
-
-  } catch (e) {
-    console.log(e);
-    return res.status(500).json({
-      error: "Internal Server Error!",
-    });
-  }
-});
-
-// read all workout session log
-router.get("/getAllWorkoutSessionLog", verifyToken, async (req, res) => {
-  try {
-    const userId = (req as any).user.userId;
-
-    const workoutSessionLogs = await prisma.workout_Session_Log.findMany({
-      where : {
-        user_id : userId
-      }
-    })
-
-    return res.status(200).json({
-      workoutSessionLogs
-    })
-  } catch (e) {
-    console.log(e);
-    return res.status(500).json({
-      error: "Internal Server Error!",
-    });
-  }
-});
-
-// delete workout session log
-router.get("/deleteWorkoutSessionLog", verifyToken, async (req, res) => {
-  try {
-    const userId = (req as any).user.userId;
-
-    const id = req.query.userId
-
-    if(typeof id !== "string"){
-      return res.status(400).json({
-        message : "provide valid id"
-      })
-    }
-
-    await prisma.workout_Session_Log.delete({
-      where : {
-        id : id
-      }
-    })
-
-    return res.status(200).json({
-      message : "session log deleted successfully!"
-    })
-  } catch (e) {
-    console.log(e);
-    return res.status(500).json({
-      error: "Internal Server Error!",
-    });
-  }
-});
-
-// add workout exercise log
-router.get("/addWorkoutExerciseLog", verifyToken, validateZod(WorkoutExerciseLogSchema), async (req, res) => {
-  try {
-    const userId = (req as any).user.userId;
-
-    const {workout_session_log_id, workout_plan_exercise_id, set, reps, rest, start_time, end_time, max_weight, notes} = req.body;
-
-    const data : any = {};
-
+    const userId = req.user!.userId;
+    const data: any = pickDefined(req.body, PLAN_FIELDS);
     data.user_id = userId;
 
-    if(workout_session_log_id) data.workout_session_log_id = workout_session_log_id
-
-    if(workout_plan_exercise_id) data.workout_plan_exercise_id = workout_plan_exercise_id
-
-    if(set) data.set = set
-
-    if(reps) data.rep = reps
-
-    if(rest) data.rest = rest
-
-    if(start_time) data.start_time = start_time
-
-    if(end_time) data.end_time = end_time
-
-    if(max_weight) data.max_weight = max_weight
-
-    if(notes) data.notes = notes
-
-    await prisma.workout_Exercise_Log.create({
-      data : data
-    })
+    await prisma.workout_Plan.create({ data });
 
     return res.status(200).json({
-      message : "workout exercise log created successfully!"
-    })
+      message: "Workout Plan created Successfully!",
+    });
   } catch (e) {
     console.log(e);
     return res.status(500).json({
@@ -644,51 +45,82 @@ router.get("/addWorkoutExerciseLog", verifyToken, validateZod(WorkoutExerciseLog
   }
 });
 
-// update workout exercise log
-router.get("/updateWorkoutExerciseLog", verifyToken, validateZod(WorkoutExerciseLogSchema), async (req, res) => {
+router.delete("/deleteWorkoutPlan", verifyToken, async (req, res) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.user!.userId;
+    const id = req.query.id;
 
-    const id = req.query.userId
-
-    if(typeof id !== "string"){
+    if (typeof id !== "string") {
       return res.status(400).json({
-        message : "provide valid id"
-      })
+        error: "Invalid workout plan id",
+      });
     }
 
-    const {workout_session_log_id, workout_plan_exercise_id, set, reps, rest, start_time, end_time, max_weight, notes} = req.body;
+    const { count } = await updateOwned(prisma.workout_Plan, id, userId, {
+      delete: true,
+    });
 
-    const data : any = {};
+    if (count === 0) {
+      return res.status(404).json({
+        message: "workout plan not found",
+      });
+    }
 
-    if(workout_session_log_id) data.workout_session_log_id = workout_session_log_id
+    return res.status(200).json({
+      message: "Deleted Successfully!",
+    });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      error: "Internal Server Error!",
+    });
+  }
+});
 
-    if(workout_plan_exercise_id) data.workout_plan_exercise_id = workout_plan_exercise_id
+router.get("/getWorkoutPlan", verifyToken, async (req, res) => {
+  try {
+    const userId = req.user!.userId;
+    const id = req.query.id;
 
-    if(set) data.set = set
+    if (typeof id !== "string") {
+      return res.status(400).json({
+        error: "Invalid workout plan id",
+      });
+    }
 
-    if(reps) data.rep = reps
+    const workoutPlan = await findOwned(prisma.workout_Plan, id, userId, { delete: false });
 
-    if(rest) data.rest = rest
+    if (!workoutPlan) {
+      return res.status(404).json({
+        message: "workout plan not found",
+      });
+    }
 
-    if(start_time) data.start_time = start_time
+    return res.status(200).json({
+      workoutPlan,
+    });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      error: "Internal Server Error!",
+    });
+  }
+});
 
-    if(end_time) data.end_time = end_time
+router.get("/getAllWorkoutPlan", verifyToken, async (req, res) => {
+  try {
+    const userId = req.user!.userId;
 
-    if(max_weight) data.max_weight = max_weight
-
-    if(notes) data.notes = notes
-
-    await prisma.workout_Exercise_Log.update({
-      where : {
-        id : id
+    const workoutPlans = await prisma.workout_Plan.findMany({
+      where: {
+        user_id: userId,
+        delete: false,
       },
-      data : data
-    })
+    });
 
     return res.status(200).json({
-      message : "workout exercise log updated successfully!"
-    })
+      workoutPlans,
+    });
   } catch (e) {
     console.log(e);
     return res.status(500).json({
@@ -697,28 +129,30 @@ router.get("/updateWorkoutExerciseLog", verifyToken, validateZod(WorkoutExercise
   }
 });
 
-// delete workout exercise log
-router.get("/deleteWorkoutExerciseLog", verifyToken, async (req, res) => {
+router.put("/updateWorkoutPlan", verifyToken, validateZod(WorkoutPlanSchema), async (req, res) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.user!.userId;
+    const id = req.query.id;
 
-    const id = req.query.userId
-
-    if(typeof id !== "string"){
+    if (typeof id !== "string") {
       return res.status(400).json({
-        message : "provide valid id"
-      })
+        error: "Invalid workout plan id",
+      });
     }
 
-    await prisma.workout_Exercise_Log.delete({
-      where : {
-        id : id
-      }
-    })
+    const data = pickDefined(req.body, PLAN_FIELDS);
+
+    const { count } = await updateOwned(prisma.workout_Plan, id, userId, data);
+
+    if (count === 0) {
+      return res.status(404).json({
+        message: "workout plan not found",
+      });
+    }
 
     return res.status(200).json({
-      message : "deleted log successfully!"
-    })
+      message: "workout plan updated successfully!",
+    });
   } catch (e) {
     console.log(e);
     return res.status(500).json({
@@ -727,28 +161,504 @@ router.get("/deleteWorkoutExerciseLog", verifyToken, async (req, res) => {
   }
 });
 
-// read workout exercise log
+// ---- Workout Plan Exercises ----
+
+router.post("/addExercise", verifyToken, validateZod(WorkoutPlanExerciseSchema), async (req, res) => {
+  try {
+    const userId = req.user!.userId;
+    const { workout_plan_id } = req.body;
+
+    if (!workout_plan_id) {
+      return res.status(400).json({
+        message: "workout_plan_id is required",
+      });
+    }
+
+    const workout_plan = await findOwned(prisma.workout_Plan, workout_plan_id, userId, { delete: false });
+    if (!workout_plan) {
+      return res.status(400).json({
+        message: "workout plan not found",
+      });
+    }
+
+    const data: any = pickDefined(req.body, EXERCISE_FIELDS);
+    data.user_id = userId;
+    data.workout_plan_id = workout_plan_id;
+
+    await prisma.workout_Plan_Exercise.create({ data });
+
+    return res.status(200).json({
+      message: "workout plan exercise added.",
+    });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      error: "Internal Server Error!",
+    });
+  }
+});
+
+router.delete("/deleteExercise", verifyToken, async (req, res) => {
+  try {
+    const userId = req.user!.userId;
+    const id = req.query.id;
+
+    if (typeof id !== "string") {
+      return res.status(400).json({
+        message: "please provide a valid id",
+      });
+    }
+
+    const { count } = await updateOwned(prisma.workout_Plan_Exercise, id, userId, {
+      delete: true,
+    });
+
+    if (count === 0) {
+      return res.status(404).json({
+        message: "exercise not found",
+      });
+    }
+
+    return res.status(200).json({
+      message: "workout plan exercise deleted successfully",
+    });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      error: "Internal Server Error!",
+    });
+  }
+});
+
+router.put("/updateExercise", verifyToken, validateZod(WorkoutPlanExerciseSchema), async (req, res) => {
+  try {
+    const userId = req.user!.userId;
+    const id = req.query.id;
+
+    if (typeof id !== "string") {
+      return res.status(400).json({
+        message: "please provide a valid id",
+      });
+    }
+
+    const { workout_plan_id } = req.body;
+
+    // if moving the exercise to a different plan, make sure that plan is
+    // also owned by this user
+    if (workout_plan_id) {
+      const workout_plan = await findOwned(prisma.workout_Plan, workout_plan_id, userId, { delete: false });
+      if (!workout_plan) {
+        return res.status(400).json({
+          message: "workout plan not found",
+        });
+      }
+    }
+
+    const data = pickDefined(req.body, [...EXERCISE_FIELDS, "workout_plan_id"] as const);
+
+    const { count } = await updateOwned(prisma.workout_Plan_Exercise, id, userId, data);
+
+    if (count === 0) {
+      return res.status(404).json({
+        message: "exercise not found",
+      });
+    }
+
+    return res.status(200).json({
+      message: "workout plan exercise updated.",
+    });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      error: "Internal Server Error!",
+    });
+  }
+});
+
+router.get("/getExercise", verifyToken, async (req, res) => {
+  try {
+    const userId = req.user!.userId;
+    const id = req.query.id;
+
+    if (typeof id !== "string") {
+      return res.status(400).json({
+        message: "please provide a valid id",
+      });
+    }
+
+    const exercise = await findOwned(prisma.workout_Plan_Exercise, id, userId, { delete: false });
+
+    if (!exercise) {
+      return res.status(404).json({
+        message: "exercise not found",
+      });
+    }
+
+    return res.status(200).json({
+      exercise,
+    });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      error: "Internal Server Error!",
+    });
+  }
+});
+
+router.get("/getExerciseOfWorkoutPlan", verifyToken, async (req, res) => {
+  try {
+    const userId = req.user!.userId;
+    const workout_plan_id = req.query.id;
+
+    if (typeof workout_plan_id !== "string") {
+      return res.status(400).json({
+        message: "please provide a valid id",
+      });
+    }
+
+    const workout_plan = await findOwned(prisma.workout_Plan, workout_plan_id, userId, { delete: false });
+    if (!workout_plan) {
+      return res.status(400).json({
+        message: "workout plan not found",
+      });
+    }
+
+    const exercises = await prisma.workout_Plan_Exercise.findMany({
+      where: {
+        workout_plan_id: workout_plan_id,
+        user_id: userId,
+        delete: false,
+      },
+    });
+
+    return res.status(200).json({
+      exercises,
+    });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      error: "Internal Server Error!",
+    });
+  }
+});
+
+router.get("/getAllExercises", verifyToken, async (req, res) => {
+  try {
+    const userId = req.user!.userId;
+
+    const exercises = await prisma.workout_Plan_Exercise.findMany({
+      where: {
+        user_id: userId,
+        delete: false,
+      },
+    });
+
+    return res.status(200).json({
+      exercises,
+    });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      error: "Internal Server Error!",
+    });
+  }
+});
+
+// ---- Workout Session Log ----
+
+router.post("/addWorkoutSessionLog", verifyToken, validateZod(WorkoutSessionLogSchema), async (req, res) => {
+  try {
+    const userId = req.user!.userId;
+    const { workout_plan_id } = req.body;
+
+    if (workout_plan_id) {
+      const workout_plan = await findOwned(prisma.workout_Plan, workout_plan_id, userId, { delete: false });
+      if (!workout_plan) {
+        return res.status(400).json({
+          message: "workout plan not found",
+        });
+      }
+    }
+
+    const data: any = pickDefined(req.body, SESSION_LOG_FIELDS);
+    data.user_id = userId;
+
+    await prisma.workout_Session_Log.create({ data });
+
+    return res.status(200).json({
+      message: "Workout Session log added Successfully!",
+    });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      error: "Internal Server Error!",
+    });
+  }
+});
+
+router.put("/updateWorkoutSessionLog", verifyToken, validateZod(WorkoutSessionLogSchema), async (req, res) => {
+  try {
+    const userId = req.user!.userId;
+    const id = req.query.id;
+
+    if (typeof id !== "string") {
+      return res.status(400).json({
+        message: "provide valid id",
+      });
+    }
+
+    const data = pickDefined(req.body, SESSION_LOG_FIELDS);
+
+    const { count } = await updateOwned(prisma.workout_Session_Log, id, userId, data);
+
+    if (count === 0) {
+      return res.status(404).json({
+        message: "workout session log not found",
+      });
+    }
+
+    return res.status(200).json({
+      message: "workout session log updated successfully!",
+    });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      error: "Internal Server Error!",
+    });
+  }
+});
+
+router.get("/getWorkoutSessionLog", verifyToken, async (req, res) => {
+  try {
+    const userId = req.user!.userId;
+    const id = req.query.id;
+
+    if (typeof id !== "string") {
+      return res.status(400).json({
+        message: "provide valid id",
+      });
+    }
+
+    const workoutSessionLog = await findOwned(prisma.workout_Session_Log, id, userId);
+
+    if (!workoutSessionLog) {
+      return res.status(404).json({
+        message: "workout session log not found",
+      });
+    }
+
+    return res.status(200).json({
+      workoutSessionLog,
+    });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      error: "Internal Server Error!",
+    });
+  }
+});
+
+router.get("/getAllWorkoutSessionLogOfWorkout", verifyToken, async (req, res) => {
+  try {
+    const userId = req.user!.userId;
+    const id = req.query.id; // workout plan id
+
+    if (typeof id !== "string") {
+      return res.status(400).json({
+        message: "provide valid id",
+      });
+    }
+
+    const workoutSessionLogs = await prisma.workout_Session_Log.findMany({
+      where: {
+        workout_plan_id: id,
+        user_id: userId,
+      },
+    });
+
+    return res.status(200).json({
+      workoutSessionLogs,
+    });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      error: "Internal Server Error!",
+    });
+  }
+});
+
+router.get("/getAllWorkoutSessionLog", verifyToken, async (req, res) => {
+  try {
+    const userId = req.user!.userId;
+
+    const workoutSessionLogs = await prisma.workout_Session_Log.findMany({
+      where: {
+        user_id: userId,
+      },
+    });
+
+    return res.status(200).json({
+      workoutSessionLogs,
+    });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      error: "Internal Server Error!",
+    });
+  }
+});
+
+router.delete("/deleteWorkoutSessionLog", verifyToken, async (req, res) => {
+  try {
+    const userId = req.user!.userId;
+    const id = req.query.id;
+
+    if (typeof id !== "string") {
+      return res.status(400).json({
+        message: "provide valid id",
+      });
+    }
+
+    const { count } = await deleteOwned(prisma.workout_Session_Log, id, userId);
+
+    if (count === 0) {
+      return res.status(404).json({
+        message: "workout session log not found",
+      });
+    }
+
+    return res.status(200).json({
+      message: "session log deleted successfully!",
+    });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      error: "Internal Server Error!",
+    });
+  }
+});
+
+// ---- Workout Exercise Log ----
+
+router.post("/addWorkoutExerciseLog", verifyToken, validateZod(WorkoutExerciseLogSchema), async (req, res) => {
+  try {
+    const userId = req.user!.userId;
+    const { workout_session_log_id, workout_plan_exercise_id } = req.body;
+
+    if (workout_session_log_id) {
+      const log = await findOwned(prisma.workout_Session_Log, workout_session_log_id, userId);
+      if (!log) {
+        return res.status(400).json({ message: "workout session log not found" });
+      }
+    }
+
+    if (workout_plan_exercise_id) {
+      const exercise = await findOwned(prisma.workout_Plan_Exercise, workout_plan_exercise_id, userId, { delete: false });
+      if (!exercise) {
+        return res.status(400).json({ message: "exercise not found" });
+      }
+    }
+
+    const data: any = pickDefined(req.body, EXERCISE_LOG_FIELDS);
+    data.user_id = userId;
+
+    await prisma.workout_Exercise_Log.create({ data });
+
+    return res.status(200).json({
+      message: "workout exercise log created successfully!",
+    });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      error: "Internal Server Error!",
+    });
+  }
+});
+
+router.put("/updateWorkoutExerciseLog", verifyToken, validateZod(WorkoutExerciseLogSchema), async (req, res) => {
+  try {
+    const userId = req.user!.userId;
+    const id = req.query.id;
+
+    if (typeof id !== "string") {
+      return res.status(400).json({
+        message: "provide valid id",
+      });
+    }
+
+    const data = pickDefined(req.body, EXERCISE_LOG_FIELDS);
+
+    const { count } = await updateOwned(prisma.workout_Exercise_Log, id, userId, data);
+
+    if (count === 0) {
+      return res.status(404).json({
+        message: "exercise log not found",
+      });
+    }
+
+    return res.status(200).json({
+      message: "workout exercise log updated successfully!",
+    });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      error: "Internal Server Error!",
+    });
+  }
+});
+
+router.delete("/deleteWorkoutExerciseLog", verifyToken, async (req, res) => {
+  try {
+    const userId = req.user!.userId;
+    const id = req.query.id;
+
+    if (typeof id !== "string") {
+      return res.status(400).json({
+        message: "provide valid id",
+      });
+    }
+
+    const { count } = await deleteOwned(prisma.workout_Exercise_Log, id, userId);
+
+    if (count === 0) {
+      return res.status(404).json({
+        message: "exercise log not found",
+      });
+    }
+
+    return res.status(200).json({
+      message: "deleted log successfully!",
+    });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      error: "Internal Server Error!",
+    });
+  }
+});
+
 router.get("/getWorkoutExerciseLog", verifyToken, async (req, res) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.user!.userId;
+    const id = req.query.id;
 
-    const id = req.query.userId
-
-    if(typeof id !== "string"){
+    if (typeof id !== "string") {
       return res.status(400).json({
-        message : "provide valid id"
-      })
+        message: "provide valid id",
+      });
     }
 
-    const exerciselog = await prisma.workout_Exercise_Log.findUnique({
-      where : {
-        id : id
-      }
-    })
+    const exerciselog = await findOwned(prisma.workout_Exercise_Log, id, userId);
+
+    if (!exerciselog) {
+      return res.status(404).json({
+        message: "exercise log not found",
+      });
+    }
 
     return res.status(200).json({
-      exerciselog
-    })
+      exerciselog,
+    });
   } catch (e) {
     console.log(e);
     return res.status(500).json({
@@ -757,32 +667,28 @@ router.get("/getWorkoutExerciseLog", verifyToken, async (req, res) => {
   }
 });
 
-// get all workout session log containing all exercises
-
-router.get("/getAllWorkoutExerciseLog", verifyToken, async (req, res) => {
+// all exercise logs for one workout session
+router.get("/getWorkoutExerciseLogsOfSession", verifyToken, async (req, res) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.user!.userId;
+    const id = req.query.id; // workout session log id
 
-    const id = req.query.userId // workout session log id
-
-    if(typeof id !== "string"){
+    if (typeof id !== "string") {
       return res.status(400).json({
-        message : "provide valid id"
-      })
+        message: "provide valid id",
+      });
     }
 
     const exerciseLogs = await prisma.workout_Exercise_Log.findMany({
-      where : {
-        workout_session_log_id : id,
-        user_id : userId
-      }
-    })
-
+      where: {
+        workout_session_log_id: id,
+        user_id: userId,
+      },
+    });
 
     return res.status(200).json({
-      exerciseLogs
-    })
-
+      exerciseLogs,
+    });
   } catch (e) {
     console.log(e);
     return res.status(500).json({
@@ -791,31 +697,20 @@ router.get("/getAllWorkoutExerciseLog", verifyToken, async (req, res) => {
   }
 });
 
-
-// read all workout exercise log 
+// every exercise log for this user
 router.get("/getAllWorkoutExerciseLog", verifyToken, async (req, res) => {
   try {
-    const userId = (req as any).user.userId;
-
-    const id = req.query.userId
-
-    if(typeof id !== "string"){
-      return res.status(400).json({
-        message : "provide valid id"
-      })
-    }
+    const userId = req.user!.userId;
 
     const exerciseLogs = await prisma.workout_Exercise_Log.findMany({
-      where : {
-        user_id : userId
-      }
-    })
-
+      where: {
+        user_id: userId,
+      },
+    });
 
     return res.status(200).json({
-      exerciseLogs
-    })
-    
+      exerciseLogs,
+    });
   } catch (e) {
     console.log(e);
     return res.status(500).json({
@@ -824,12 +719,11 @@ router.get("/getAllWorkoutExerciseLog", verifyToken, async (req, res) => {
   }
 });
 
-// get workout session summary
+// ---- Summaries (not implemented yet) ----
+
 router.get("/getWorkoutSessionSummary", verifyToken, async (req, res) => {
   try {
-    const userId = (req as any).user.userId;
-
-    
+    return res.status(501).json({ error: "Not implemented" });
   } catch (e) {
     console.log(e);
     return res.status(500).json({
@@ -838,12 +732,9 @@ router.get("/getWorkoutSessionSummary", verifyToken, async (req, res) => {
   }
 });
 
-// get workout plan summary
 router.get("/getWorkoutPlanSummary", verifyToken, async (req, res) => {
   try {
-    const userId = (req as any).user.userId;
-
-    
+    return res.status(501).json({ error: "Not implemented" });
   } catch (e) {
     console.log(e);
     return res.status(500).json({
@@ -852,12 +743,9 @@ router.get("/getWorkoutPlanSummary", verifyToken, async (req, res) => {
   }
 });
 
-// get exercise log summary
 router.get("/getExerciseLogSummary", verifyToken, async (req, res) => {
   try {
-    const userId = (req as any).user.userId;
-
-    
+    return res.status(501).json({ error: "Not implemented" });
   } catch (e) {
     console.log(e);
     return res.status(500).json({
@@ -866,12 +754,9 @@ router.get("/getExerciseLogSummary", verifyToken, async (req, res) => {
   }
 });
 
-// get all summary
 router.get("/getAllSummary", verifyToken, async (req, res) => {
   try {
-    const userId = (req as any).user.userId;
-
-    
+    return res.status(501).json({ error: "Not implemented" });
   } catch (e) {
     console.log(e);
     return res.status(500).json({
@@ -879,3 +764,5 @@ router.get("/getAllSummary", verifyToken, async (req, res) => {
     });
   }
 });
+
+export default router;

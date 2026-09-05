@@ -21,7 +21,7 @@ const router = Router();
 router.get('/', verifyToken, async (req, res) => {
   // to get the user data
   try{
-    const userId = (req as any).user.userId;
+    const userId = req.user!.userId;
 
     const user = await prisma.user.findUnique({
       where : { id : userId},
@@ -123,7 +123,8 @@ router.post('/signin',validateZod(SignInSchema), async (req, res) => {
     })
 
     if(!process.env.JWT_SECRET){
-      return res.status(500);
+      console.error("JWT_SECRET is not configured");
+      return res.status(500).json({ error : "Server misconfiguration" });
     }
 
     const token = jwt.sign({
@@ -266,13 +267,15 @@ router.post('/resetPassword', validateZod(ResetPasswordSchema), async (req, res)
       })
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    if(await bcrypt.compare(hashedPassword, user.password)){
+    // bcrypt.compare takes the plaintext candidate first, not two hashes -
+    // comparing hash-to-hash here meant this check almost never fired.
+    if(await bcrypt.compare(password, user.password)){
       return res.status(409).json({
         message : "You cannot use previous password!"
       })
     }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     await prisma.user.update({
       where : {

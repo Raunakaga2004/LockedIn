@@ -3,83 +3,47 @@ import prisma from "../config/prisma";
 
 // middleware
 import { verifyToken } from "../middlewares/verifyToken";
-import { validateZod } from "../middlewares/validateZod";
+import { validateZod, validateZodQuery } from "../middlewares/validateZod";
 
 // zod schema
-import { RecurrenceSchema, TaskSchema } from "../schemas/task.schema";
-import fa from "zod/v4/locales/fa.cjs";
+import { RecurrenceSchema, TaskFilterSchema, TaskSchema } from "../schemas/task.schema";
+
+// utils
+import { pickDefined } from "../utils/pick";
+import { findOwned, updateOwned } from "../utils/ownership";
 
 const router = Router();
 
-router.post(
-  "/createTask",
-  verifyToken,
-  validateZod(TaskSchema),
-  async (req, res) => {
-    try {
-      const userId = (req as any).user.userId;
+const TASK_FIELDS = ["title", "description", "type", "status", "urgent", "important", "expected_pomodoro"] as const;
+const RECURRENCE_FIELDS = ["frequency", "interval", "start_date", "end_date", "exceptions"] as const;
 
-      const {
-        title,
-        description,
-        type,
-        status,
-        urgent,
-        important,
-        expected_pomodoro,
-      } = req.body;
+router.post("/createTask", verifyToken, validateZod(TaskSchema), async (req, res) => {
+  try {
+    const userId = req.user!.userId;
 
-      const data: any = {};
-
-      data.title = title;
-
-      if (description) {
-        data.description = description;
-      }
-
-      if (type) {
-        // dont give 'quick task'
-        data.type = type;
-      }
-
-      if (status) {
-        data.status = status;
-      }
-
-      if (urgent) {
-        data.urgent = urgent;
-      }
-
-      if (important) {
-        data.important = important;
-      }
-
-      if (expected_pomodoro) {
-        data.expected_pomodoro = expected_pomodoro;
-      }
-
-      data.user_id = userId;
-
-      await prisma.task.create({
-        data: data,
-      });
-
-      return res.status(200).json({
-        message: "Task created successfully",
-      });
-    } catch (e) {
-      console.log(e);
-      return res.status(500).json({
-        error: "Internal Server Error!",
-      });
+    if (!req.body.title) {
+      return res.status(400).json({ error: "Title is required" });
     }
+
+    const data: any = pickDefined(req.body, TASK_FIELDS);
+    data.user_id = userId;
+
+    await prisma.task.create({ data });
+
+    return res.status(200).json({
+      message: "Task created successfully",
+    });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      error: "Internal Server Error!",
+    });
   }
-);
+});
 
 router.delete("/deleteTask", verifyToken, async (req, res) => {
   try {
-    const userId = (req as any).user.userId;
-
+    const userId = req.user!.userId;
     const id = req.query.id;
 
     if (typeof id !== "string") {
@@ -88,26 +52,16 @@ router.delete("/deleteTask", verifyToken, async (req, res) => {
       });
     }
 
-    const task = await prisma.task.findUnique({
-      where: {
-        id: id,
-      },
+    // Task is soft-deleted (a `delete` flag), not removed from the table.
+    const { count } = await updateOwned(prisma.task, id, userId, {
+      delete: true,
     });
 
-    if (task?.user_id !== userId) {
-      return res.status(400).json({
+    if (count === 0) {
+      return res.status(404).json({
         error: "Task doesn't exist!",
       });
     }
-
-    await prisma.task.update({
-      where: {
-        id: id,
-      },
-      data: {
-        delete: true,
-      },
-    });
 
     return res.status(200).json({
       message: "Task deleted successfully",
@@ -120,92 +74,9 @@ router.delete("/deleteTask", verifyToken, async (req, res) => {
   }
 });
 
-router.put(
-  "/updateTask",
-  verifyToken,
-  validateZod(TaskSchema),
-  async (req, res) => {
-    try {
-      const userId = (req as any).user.userId;
-
-      const {
-        title,
-        description,
-        type,
-        status,
-        urgent,
-        important,
-        expected_pomodoro,
-      } = req.body;
-
-      const data: any = {};
-
-      if (title) {
-        data.title = title;
-      }
-      if (description) {
-        data.description = description;
-      }
-      if (type) {
-        // dont give 'quick task'
-        data.type = type;
-      }
-      if (status) {
-        data.status = status;
-      }
-      if (urgent) {
-        data.urgent = urgent;
-      }
-      if (important) {
-        data.important = important;
-      }
-      if (expected_pomodoro) {
-        data.expected_pomodoro = expected_pomodoro;
-      }
-
-      const id = req.query.id;
-
-      if (typeof id !== "string") {
-        return res.status(400).json({
-          error: "Invalid task id",
-        });
-      }
-
-      const task = await prisma.task.findUnique({
-        where: {
-          id: id,
-        },
-      });
-
-      if (!task || task.user_id !== userId) {
-        return res.status(400).json({
-          message: "task not found",
-        });
-      }
-
-      await prisma.task.update({
-        where: {
-          id: id,
-        },
-        data: data,
-      });
-
-      return res.status(200).json({
-        message: "task updated",
-      });
-    } catch (e) {
-      console.log(e);
-      return res.status(500).json({
-        error: "Internal Server Error!",
-      });
-    }
-  }
-);
-
-router.get("/getTaskById", verifyToken, async (req, res) => {
+router.put("/updateTask", verifyToken, validateZod(TaskSchema), async (req, res) => {
   try {
-    const userId = (req as any).user.userId;
-
+    const userId = req.user!.userId;
     const id = req.query.id;
 
     if (typeof id !== "string") {
@@ -214,14 +85,42 @@ router.get("/getTaskById", verifyToken, async (req, res) => {
       });
     }
 
-    const task = await prisma.task.findUnique({
-      where: {
-        id: id,
-      },
-    });
+    const data = pickDefined(req.body, TASK_FIELDS);
 
-    if (!task || task.user_id !== userId) {
+    const { count } = await updateOwned(prisma.task, id, userId, data);
+
+    if (count === 0) {
+      return res.status(404).json({
+        message: "task not found",
+      });
+    }
+
+    return res.status(200).json({
+      message: "task updated",
+    });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      error: "Internal Server Error!",
+    });
+  }
+});
+
+router.get("/getTaskById", verifyToken, async (req, res) => {
+  try {
+    const userId = req.user!.userId;
+    const id = req.query.id;
+
+    if (typeof id !== "string") {
       return res.status(400).json({
+        error: "Invalid task id",
+      });
+    }
+
+    const task = await findOwned(prisma.task, id, userId);
+
+    if (!task) {
+      return res.status(404).json({
         message: "task not found",
       });
     }
@@ -237,178 +136,36 @@ router.get("/getTaskById", verifyToken, async (req, res) => {
   }
 });
 
-router.put(
-  "/updateTaskStatus",
-  validateZod(TaskSchema),
-  verifyToken,
-  async (req, res) => {
-    try {
-      const userId = (req as any).user.userId;
-      const id = req.query.id;
-
-      if (typeof id !== "string") {
-        return res.status(400).json({
-          error: "Invalid task id",
-        });
-      }
-
-      const task = await prisma.task.findUnique({
-        where: {
-          id: id,
-        },
-      });
-
-      if (!task || task.user_id !== userId) {
-        return res.status(400).json({
-          message: "task not found",
-        });
-      }
-
-      await prisma.task.update({
-        where: {
-          id: id,
-        },
-        data: {
-          status: req.body.status,
-        },
-      });
-
-      return res.status(200).json({
-        message: "task status updated",
-      });
-    } catch (e) {
-      console.log(e);
-      return res.status(500).json({
-        error: "Internal Server Error!",
-      });
-    }
-  }
-);
-
-//get tasks by filter
-router.get(
-  "/getTasks", verifyToken, validateZod(TaskSchema), async (req, res) => {
-    try {
-      const userId = (req as any).user.userId;
-
-      const {
-        tag,
-        status,
-        urgent,
-        important,
-        type,
-        search_name,
-        repeat,
-        created_At,
-        updated_At,
-      } = req.body;
-
-      const data: any = {};
-
-      if (search_name) {
-        data.title = {
-          contains: search_name,
-          mode: "insensitive",
-        };
-      }
-      if (type) {
-        // dont give 'quick task'
-        data.type = type;
-      }
-      if (status) {
-        data.status = status;
-      }
-      if (urgent) {
-        data.urgent = urgent;
-      }
-      if (important) {
-        data.important = important;
-      }
-      if (repeat) {
-        data.repeat = repeat;
-      }
-      if (created_At) {
-        data.created_At = created_At;
-      }
-      if (updated_At) {
-        data.updated_At = updated_At;
-      }
-      
-      data.delete = false
-
-      data.user_id = userId;
-
-      const tasks = await prisma.task.findMany({
-        where: data,
-      });
-
-      return res.status(200).json({
-        tasks: tasks,
-      });
-    } catch (e) {
-      console.log(e);
-      return res.status(500).json({
-        error: "Internal Server Error!",
-      });
-    }
-  }
-);
-
-router.post("/addRecurrence", verifyToken, validateZod(RecurrenceSchema), async (req, res) => {
+router.put("/updateTaskStatus", verifyToken, validateZod(TaskSchema), async (req, res) => {
   try {
-    const { base_task_id, frequency, interval, days_of_week, start_date, end_date, exceptions } = req.body;
+    const userId = req.user!.userId;
+    const id = req.query.id;
 
-    const userId = (req as any).user.userId;
-
-    // check if task really exist and is not deleted
-    const task = await prisma.task.findUnique({
-      where: {
-        id : base_task_id
-      }
-    })
-
-    if(!task || task.user_id !== userId || task.delete){
+    if (typeof id !== "string") {
       return res.status(400).json({
-        error: "Task not found or is deleted",
-      })
+        error: "Invalid task id",
+      });
     }
 
-    const data : any = {};
-
-    data.base_task_id = base_task_id;
-    if(frequency){
-      data.frequency = frequency
+    if (!req.body.status) {
+      return res.status(400).json({
+        error: "status is required",
+      });
     }
 
-    if(frequency === 'weekly' && days_of_week){
-      data.days_of_week = days_of_week
-    }
-    
-    if(interval){
-      data.interval = interval
-    }
+    const { count } = await updateOwned(prisma.task, id, userId, {
+      status: req.body.status,
+    });
 
-    if(start_date){
-      data.start_date = start_date
+    if (count === 0) {
+      return res.status(404).json({
+        message: "task not found",
+      });
     }
-
-    if(end_date){
-      data.end_date = end_date
-    }
-
-    if(exceptions){
-      data.exceptions = exceptions
-    }
-
-    // create recurrence 
-    await prisma.recurrence.create({
-      data : data
-    })
 
     return res.status(200).json({
-      message: "Recurrence created successfully",
-    })
-
+      message: "task status updated",
+    });
   } catch (e) {
     console.log(e);
     return res.status(500).json({
@@ -417,34 +174,106 @@ router.post("/addRecurrence", verifyToken, validateZod(RecurrenceSchema), async 
   }
 });
 
-// getRecurrenceDetails
-router.get("/getRecurrenceDetails", verifyToken, async (req, res) => {
+// get tasks by filter - this is a GET, so filters travel as query params,
+// not a request body (browsers/axios don't reliably send a body on GET).
+router.get("/getTasks", verifyToken, validateZodQuery(TaskFilterSchema), async (req, res) => {
   try {
-    const userId = (req as any).user.userId;
-    const recurrenceId = req.query.recId;
+    const userId = req.user!.userId;
+    const { status, urgent, important, type, search_name, tag_id } = res.locals.query;
 
-    if(typeof recurrenceId !== 'string'){
-      return res.status(400).json({
-        error: "Invalid recurrence id",
-      })
+    const where: any = {
+      user_id: userId,
+      delete: false,
+    };
+
+    if (search_name) {
+      where.title = {
+        contains: search_name,
+        mode: "insensitive",
+      };
+    }
+    if (type) where.type = type;
+    if (status) where.status = status;
+    if (urgent !== undefined) where.urgent = urgent;
+    if (important !== undefined) where.important = important;
+    if (tag_id) {
+      where.task_tag = { some: { tag_id } };
     }
 
-    const recurrence = await prisma.recurrence.findUnique({
-      where : {
-        id : recurrenceId
-      }
-    })
+    const tasks = await prisma.task.findMany({ where });
 
-    if(!recurrence || recurrence.user_id !== userId || recurrence.delete){
+    return res.status(200).json({
+      tasks: tasks,
+    });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      error: "Internal Server Error!",
+    });
+  }
+});
+
+router.post("/addRecurrence", verifyToken, validateZod(RecurrenceSchema), async (req, res) => {
+  try {
+    const { base_task_id, days_of_week, frequency } = req.body;
+
+    const userId = req.user!.userId;
+
+    if (typeof base_task_id !== "string") {
+      return res.status(400).json({ error: "base_task_id is required" });
+    }
+
+    // check the task really exists, belongs to this user, and isn't deleted
+    const task = await findOwned(prisma.task, base_task_id, userId, { delete: false });
+
+    if (!task) {
+      return res.status(400).json({
+        error: "Task not found or is deleted",
+      });
+    }
+
+    const data: any = pickDefined(req.body, RECURRENCE_FIELDS);
+    data.base_task_id = base_task_id;
+
+    if (frequency === "weekly" && days_of_week) {
+      data.days_of_week = days_of_week;
+    }
+
+    await prisma.recurrence.create({ data });
+
+    return res.status(200).json({
+      message: "Recurrence created successfully",
+    });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      error: "Internal Server Error!",
+    });
+  }
+});
+
+router.get("/getRecurrenceDetails", verifyToken, async (req, res) => {
+  try {
+    const userId = req.user!.userId;
+    const recurrenceId = req.query.recId;
+
+    if (typeof recurrenceId !== "string") {
+      return res.status(400).json({
+        error: "Invalid recurrence id",
+      });
+    }
+
+    const recurrence = await findOwned(prisma.recurrence, recurrenceId, userId, { delete: false });
+
+    if (!recurrence) {
       return res.status(404).json({
         error: "Recurrence not found",
-      })
+      });
     }
 
     return res.status(200).json({
-      recurrence : recurrence
-    })
-
+      recurrence: recurrence,
+    });
   } catch (e) {
     console.log(e);
     return res.status(500).json({
@@ -455,19 +284,18 @@ router.get("/getRecurrenceDetails", verifyToken, async (req, res) => {
 
 router.get("/getAllRecurrenceDetails", verifyToken, async (req, res) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.user!.userId;
 
     const recurrences = await prisma.recurrence.findMany({
       where: {
         user_id: userId,
-        delete : false
-      }
-    })
+        delete: false,
+      },
+    });
 
     return res.status(200).json({
-      recurrences: recurrences
-    })
-
+      recurrences: recurrences,
+    });
   } catch (e) {
     console.log(e);
     return res.status(500).json({
@@ -476,115 +304,53 @@ router.get("/getAllRecurrenceDetails", verifyToken, async (req, res) => {
   }
 });
 
-// updateRecurrence
 router.put("/updateRecurrence", verifyToken, validateZod(RecurrenceSchema), async (req, res) => {
   try {
-    const {recId, frequency, interval, days_of_week, start_date, end_date, exceptions } = req.body;
+    const { days_of_week, frequency } = req.body;
+    const recId = req.query.recId;
 
-    const userId = (req as any).user.userId;
+    const userId = req.user!.userId;
 
-    // check if task really exist and is not deleted
-    const recurrence = await prisma.recurrence.findUnique({
-      where : {
-        id : recId
-      }
-    })
-
-    if(!recurrence || recurrence.user_id != userId || recurrence.delete){
-      return res.status(400).json({
-        error: "Recurrence not found!"
-      })
-    }
-
-    const task = await prisma.task.findUnique({
-      where: {
-        id : recurrence.base_task_id
-      }
-    })
-
-    if(!task || task.user_id !== userId || task.delete){
-      return res.status(400).json({
-        error: "Task not found or is deleted",
-      })
-    }
-
-    const data : any = {};
-
-    if(frequency){
-      data.frequency = frequency
-    }
-
-    if(frequency === 'weekly' && days_of_week){
-      data.days_of_week = days_of_week
-    }
-    
-    if(interval){
-      data.interval = interval
-    }
-
-    if(start_date){
-      data.start_date = start_date
-    }
-
-    if(end_date){
-      data.end_date = end_date
-    }
-
-    if(exceptions){
-      data.exceptions = exceptions
-    }
-
-    // create recurrence 
-    await prisma.recurrence.update({
-      where : {
-        id : recId
-      },
-      data : data
-    })
-
-    return res.status(200).json({
-      message: "Recurrence created successfully",
-    })
-  } catch (e) {
-    console.log(e);
-    return res.status(500).json({
-      error: "Internal Server Error!",
-    });
-  }
-});
-
-// deleteRecurrence
-router.delete("/deleteRecurrence", verifyToken, async (req, res) => {
-  try {
-    const userId = (req as any).user.userId;
-    const recurrenceId = req.query.recId;
-
-    if(typeof recurrenceId !== 'string'){
+    if (typeof recId !== "string") {
       return res.status(400).json({
         error: "Invalid recurrence id",
-      })
+      });
     }
 
-    const recurrence = await prisma.recurrence.findUnique({
-      where : {
-        id : recurrenceId
-      }
-    })
+    // check it exists, belongs to this user, isn't deleted, and its base
+    // task hasn't itself been deleted
+    const recurrence = await findOwned(prisma.recurrence, recId, userId, { delete: false });
 
-    if(!recurrence || recurrence.user_id !== userId || recurrence.delete){
-      return res.status(404).json({
-        error: "Recurrence not found",
-      })
+    if (!recurrence) {
+      return res.status(400).json({
+        error: "Recurrence not found!",
+      });
+    }
+
+    const task = await prisma.task.findFirst({
+      where: { id: recurrence.base_task_id, user_id: userId, delete: false },
+    });
+
+    if (!task) {
+      return res.status(400).json({
+        error: "Task not found or is deleted",
+      });
+    }
+
+    const data: any = pickDefined(req.body, RECURRENCE_FIELDS);
+
+    if (frequency === "weekly" && days_of_week) {
+      data.days_of_week = days_of_week;
     }
 
     await prisma.recurrence.update({
-      where: {
-        id: recurrenceId
-      },
-      data : {
-        delete : true
-      }
-    })
+      where: { id: recId },
+      data,
+    });
+
+    return res.status(200).json({
+      message: "Recurrence updated successfully",
+    });
   } catch (e) {
     console.log(e);
     return res.status(500).json({
@@ -593,17 +359,48 @@ router.delete("/deleteRecurrence", verifyToken, async (req, res) => {
   }
 });
 
-// getEisenhowerTasks
+router.delete("/deleteRecurrence", verifyToken, async (req, res) => {
+  try {
+    const userId = req.user!.userId;
+    const recurrenceId = req.query.recId;
+
+    if (typeof recurrenceId !== "string") {
+      return res.status(400).json({
+        error: "Invalid recurrence id",
+      });
+    }
+
+    const { count } = await updateOwned(prisma.recurrence, recurrenceId, userId, {
+      delete: true,
+    });
+
+    if (count === 0) {
+      return res.status(404).json({
+        error: "Recurrence not found",
+      });
+    }
+
+    return res.status(200).json({
+      message: "Recurrence deleted successfully",
+    });
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      error: "Internal Server Error!",
+    });
+  }
+});
+
+// getEisenhowerTasks - urgent/important quadrant view
 router.get("/getEisenhowerTasks", verifyToken, async (req, res) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.user!.userId;
 
     const tasks = await prisma.task.findMany({
       where: {
         user_id: userId,
-        urgent: true || false,
-        important: true || false,
-        delete : false
+        delete: false,
+        OR: [{ urgent: true }, { important: true }],
       },
     });
 
@@ -618,12 +415,11 @@ router.get("/getEisenhowerTasks", verifyToken, async (req, res) => {
   }
 });
 
-
-// reports endpoints
+// reports endpoints - not implemented yet
 
 router.get("/getTaskSummary", verifyToken, async (req, res) => {
   try {
-
+    return res.status(501).json({ error: "Not implemented" });
   } catch (e) {
     console.log(e);
     return res.status(500).json({
@@ -634,7 +430,7 @@ router.get("/getTaskSummary", verifyToken, async (req, res) => {
 
 router.get("/getAllTaskSummary", verifyToken, async (req, res) => {
   try {
-
+    return res.status(501).json({ error: "Not implemented" });
   } catch (e) {
     console.log(e);
     return res.status(500).json({
